@@ -21,6 +21,29 @@ spec:
       imagePullSecrets:
         - name: {{ include "didnotreadit.pullSecretName" . }}
       {{- end }}
+      initContainers:
+        - name: migrations
+          image: {{ include "didnotreadit.migrationsImage" . }}
+          imagePullPolicy: {{ .Values.migrations.image.pullPolicy }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "didnotreadit.secretName" . }}
+                  key: database-url
+            {{- if .Values.postgresql.enabled }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "didnotreadit.secretName" . }}
+                  key: postgres-password
+            - name: POSTGRES_USER
+              value: {{ .Values.postgresql.auth.username | quote }}
+            - name: POSTGRES_DB
+              value: {{ .Values.postgresql.auth.database | quote }}
+            - name: DB_HOST
+              value: {{ .Release.Name }}-postgresql
+            {{- end }}
       containers:
         - name: app
           image: {{ include "didnotreadit.appImage" . }}
