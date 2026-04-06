@@ -1,17 +1,18 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useFormState } from 'react-dom';
 import { createDidnotreadit } from '@/actions/didnotreadits';
+import SubmitButton from '@/components/SubmitButton';
 
 export default function CreateDidnotreaditPage() {
-  const [state, formAction, isPending] = useActionState(createDidnotreadit, null);
+  const [state, formAction] = useFormState(createDidnotreadit, null);
 
   return (
     <div className="form-page">
       <h1>create a didnotreadit</h1>
       <form action={formAction} className="create-form">
         <label>
-          name
+          name <span className="label-hint">(lowercase letters, numbers, underscores, hyphens)</span>
           <div className="input-prefix-wrap">
             <span className="input-prefix">d/</span>
             <input
@@ -20,7 +21,8 @@ export default function CreateDidnotreaditPage() {
               required
               minLength={3}
               maxLength={50}
-              pattern="[a-z0-9_]+"
+              pattern="[a-z0-9_\-]+"
+              title="Lowercase letters, numbers, underscores, and hyphens only"
               placeholder="my_didnotreadit"
               autoFocus
             />
@@ -35,9 +37,7 @@ export default function CreateDidnotreaditPage() {
           <textarea name="description" rows={4} placeholder="What is this didnotreadit about?" />
         </label>
         {state?.error && <div className="form-error">{state.error}</div>}
-        <button type="submit" className="btn" disabled={isPending}>
-          {isPending ? 'creating...' : 'create didnotreadit'}
-        </button>
+        <SubmitButton label="create didnotreadit" pendingLabel="creating..." />
       </form>
     </div>
   );

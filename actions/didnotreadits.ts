@@ -19,8 +19,8 @@ export async function createDidnotreadit(_prevState: unknown, formData: FormData
     return { error: 'Name must be between 3 and 50 characters.' };
   }
 
-  if (!/^[a-z0-9_]+$/.test(name)) {
-    return { error: 'Name can only contain lowercase letters, numbers, and underscores.' };
+  if (!/^[a-z0-9_\-]+$/.test(name)) {
+    return { error: 'Name can only contain lowercase letters, numbers, underscores, and hyphens.' };
   }
 
   if (name === 'all' || name === 'new' || name === 'create') {
