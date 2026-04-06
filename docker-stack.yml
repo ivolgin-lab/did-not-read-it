@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: didnotreadit
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: didnotreadit
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U didnotreadit"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ui:
+    image: node:20-alpine
+    working_dir: /app
+    command: >
+      sh -c "apk add --no-cache postgresql-client && npm install && npx drizzle-kit push && PGPASSWORD=password psql -h db -U didnotreadit -d didnotreadit -f db/search-trigger.sql && npx next dev --hostname 0.0.0.0"
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://didnotreadit:password@db:5432/didnotreadit
+      SESSION_SECRET: dev-secret-change-in-production-min-32-chars!!
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+    privileged: true
+
+volumes:
+  pgdata:
+  node_modules:
