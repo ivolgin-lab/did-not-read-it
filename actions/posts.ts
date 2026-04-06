@@ -44,12 +44,15 @@ export async function createPost(_prevState: unknown, formData: FormData) {
   }).returning();
 
   // Auto-upvote own post
-  await db.insert(postVote).values({
-    userId: currentUser.userId,
-    postId: newPost.id,
-    value: 1,
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT id FROM post WHERE id = ${newPost.id} FOR UPDATE`);
+    await tx.insert(postVote).values({
+      userId: currentUser.userId,
+      postId: newPost.id,
+      value: 1,
+    });
+    await tx.update(post).set({ score: 1 }).where(eq(post.id, newPost.id));
   });
-  await db.update(post).set({ score: 1 }).where(eq(post.id, newPost.id));
 
   redirect(`/post/${newPost.id}`);
 }
@@ -61,32 +64,36 @@ export async function voteOnPost(postId: string, value: number) {
   const vote = value as 1 | -1;
   if (vote !== 1 && vote !== -1) return { error: 'Invalid vote.' };
 
-  const [existing] = await db.select().from(postVote)
-    .where(and(eq(postVote.userId, currentUser.userId), eq(postVote.postId, postId)));
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT id FROM post WHERE id = ${postId} FOR UPDATE`);
 
-  if (existing) {
-    if (existing.value === vote) {
-      // Remove vote
-      await db.delete(postVote).where(eq(postVote.id, existing.id));
-      await db.update(post).set({
-        score: sql`${post.score} - ${existing.value}`,
-      }).where(eq(post.id, postId));
+    const [existing] = await tx.select().from(postVote)
+      .where(and(eq(postVote.userId, currentUser.userId), eq(postVote.postId, postId)));
+
+    if (existing) {
+      if (existing.value === vote) {
+        // Remove vote
+        await tx.delete(postVote).where(eq(postVote.id, existing.id));
+        await tx.update(post).set({
+          score: sql`${post.score} - ${existing.value}`,
+        }).where(eq(post.id, postId));
+      } else {
+        // Change vote
+        await tx.update(postVote).set({ value: vote }).where(eq(postVote.id, existing.id));
+        await tx.update(post).set({
+          score: sql`${post.score} + ${vote - existing.value}`,
+        }).where(eq(post.id, postId));
+      }
     } else {
-      // Change vote
-      await db.update(postVote).set({ value: vote }).where(eq(postVote.id, existing.id));
-      await db.update(post).set({
-        score: sql`${post.score} + ${vote - existing.value}`,
+      // New vote
+      await tx.insert(postVote).values({
+        userId: currentUser.userId,
+        postId,
+        value: vote,
+      });
+      await tx.update(post).set({
+        score: sql`${post.score} + ${vote}`,
       }).where(eq(post.id, postId));
     }
-  } else {
-    // New vote
-    await db.insert(postVote).values({
-      userId: currentUser.userId,
-      postId,
-      value: vote,
-    });
-    await db.update(post).set({
-      score: sql`${post.score} + ${vote}`,
-    }).where(eq(post.id, postId));
-  }
+  });
 }

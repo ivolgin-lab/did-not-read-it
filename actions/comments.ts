@@ -24,25 +24,30 @@ export async function createComment(_prevState: unknown, formData: FormData) {
     return { error: 'Comment is too long (max 10,000 characters).' };
   }
 
-  const [newComment] = await db.insert(comment).values({
-    body,
-    authorId: currentUser.userId,
-    postId,
-    parentId,
-  }).returning();
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT id FROM post WHERE id = ${postId} FOR UPDATE`);
 
-  // Increment comment count on post
-  await db.update(post).set({
-    commentCount: sql`${post.commentCount} + 1`,
-  }).where(eq(post.id, postId));
+    const [newComment] = await tx.insert(comment).values({
+      body,
+      authorId: currentUser.userId,
+      postId,
+      parentId,
+    }).returning();
 
-  // Auto-upvote own comment
-  await db.insert(commentVote).values({
-    userId: currentUser.userId,
-    commentId: newComment.id,
-    value: 1,
+    // Increment comment count on post
+    await tx.update(post).set({
+      commentCount: sql`${post.commentCount} + 1`,
+    }).where(eq(post.id, postId));
+
+    // Auto-upvote own comment
+    await tx.execute(sql`SELECT id FROM comment WHERE id = ${newComment.id} FOR UPDATE`);
+    await tx.insert(commentVote).values({
+      userId: currentUser.userId,
+      commentId: newComment.id,
+      value: 1,
+    });
+    await tx.update(comment).set({ score: 1, upvotes: 1 }).where(eq(comment.id, newComment.id));
   });
-  await db.update(comment).set({ score: 1, upvotes: 1 }).where(eq(comment.id, newComment.id));
 
   revalidatePath(`/post/${postId}`);
   return { success: true };
@@ -55,40 +60,44 @@ export async function voteOnComment(commentId: string, value: number) {
   const vote = value as 1 | -1;
   if (vote !== 1 && vote !== -1) return { error: 'Invalid vote.' };
 
-  const [existing] = await db.select().from(commentVote)
-    .where(and(eq(commentVote.userId, currentUser.userId), eq(commentVote.commentId, commentId)));
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT id FROM comment WHERE id = ${commentId} FOR UPDATE`);
 
-  if (existing) {
-    if (existing.value === vote) {
-      // Remove vote
-      await db.delete(commentVote).where(eq(commentVote.id, existing.id));
-      const upDelta = existing.value === 1 ? -1 : 0;
-      const downDelta = existing.value === -1 ? -1 : 0;
-      await db.update(comment).set({
-        score: sql`${comment.score} - ${existing.value}`,
-        upvotes: sql`${comment.upvotes} + ${upDelta}`,
-        downvotes: sql`${comment.downvotes} + ${downDelta}`,
-      }).where(eq(comment.id, commentId));
+    const [existing] = await tx.select().from(commentVote)
+      .where(and(eq(commentVote.userId, currentUser.userId), eq(commentVote.commentId, commentId)));
+
+    if (existing) {
+      if (existing.value === vote) {
+        // Remove vote
+        await tx.delete(commentVote).where(eq(commentVote.id, existing.id));
+        const upDelta = existing.value === 1 ? -1 : 0;
+        const downDelta = existing.value === -1 ? -1 : 0;
+        await tx.update(comment).set({
+          score: sql`${comment.score} - ${existing.value}`,
+          upvotes: sql`${comment.upvotes} + ${upDelta}`,
+          downvotes: sql`${comment.downvotes} + ${downDelta}`,
+        }).where(eq(comment.id, commentId));
+      } else {
+        // Change vote
+        await tx.update(commentVote).set({ value: vote }).where(eq(commentVote.id, existing.id));
+        await tx.update(comment).set({
+          score: sql`${comment.score} + ${vote - existing.value}`,
+          upvotes: sql`${comment.upvotes} + ${vote === 1 ? 1 : -1}`,
+          downvotes: sql`${comment.downvotes} + ${vote === -1 ? 1 : -1}`,
+        }).where(eq(comment.id, commentId));
+      }
     } else {
-      // Change vote
-      await db.update(commentVote).set({ value: vote }).where(eq(commentVote.id, existing.id));
-      await db.update(comment).set({
-        score: sql`${comment.score} + ${vote - existing.value}`,
-        upvotes: sql`${comment.upvotes} + ${vote === 1 ? 1 : -1}`,
-        downvotes: sql`${comment.downvotes} + ${vote === -1 ? 1 : -1}`,
+      // New vote
+      await tx.insert(commentVote).values({
+        userId: currentUser.userId,
+        commentId,
+        value: vote,
+      });
+      await tx.update(comment).set({
+        score: sql`${comment.score} + ${vote}`,
+        upvotes: sql`${comment.upvotes} + ${vote === 1 ? 1 : 0}`,
+        downvotes: sql`${comment.downvotes} + ${vote === -1 ? 1 : 0}`,
       }).where(eq(comment.id, commentId));
     }
-  } else {
-    // New vote
-    await db.insert(commentVote).values({
-      userId: currentUser.userId,
-      commentId,
-      value: vote,
-    });
-    await db.update(comment).set({
-      score: sql`${comment.score} + ${vote}`,
-      upvotes: sql`${comment.upvotes} + ${vote === 1 ? 1 : 0}`,
-      downvotes: sql`${comment.downvotes} + ${vote === -1 ? 1 : 0}`,
-    }).where(eq(comment.id, commentId));
-  }
+  });
 }
