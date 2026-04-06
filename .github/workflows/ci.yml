@@ -73,7 +73,7 @@ jobs:
         id: tag
         run: echo "sha=$(echo ${{ github.event.pull_request.head.sha }} | cut -c1-7)" >> "$GITHUB_OUTPUT"
 
-      - name: Create CMX k0s cluster
+      - name: Create CMX k3s cluster
         id: cluster
         env:
           REPLICATED_API_TOKEN: ${{ secrets.REPLICATED_API_TOKEN }}
@@ -91,7 +91,7 @@ jobs:
         env:
           REPLICATED_API_TOKEN: ${{ secrets.REPLICATED_API_TOKEN }}
         run: |
-          replicated cluster kubeconfig --id ${{ steps.cluster.outputs.id }} > kubeconfig
+          replicated cluster kubeconfig ${{ steps.cluster.outputs.id }} --output-path kubeconfig
           echo "KUBECONFIG=$(pwd)/kubeconfig" >> "$GITHUB_ENV"
 
       - name: Build Helm dependencies
@@ -123,5 +123,5 @@ jobs:
           REPLICATED_API_TOKEN: ${{ secrets.REPLICATED_API_TOKEN }}
         run: |
           if [ -n "${{ steps.cluster.outputs.id }}" ]; then
-            replicated cluster rm --id ${{ steps.cluster.outputs.id }}
+            replicated cluster rm ${{ steps.cluster.outputs.id }}
           fi
