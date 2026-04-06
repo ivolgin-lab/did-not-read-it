@@ -6,11 +6,6 @@ import { getUser } from '@/lib/auth';
 import { eq, and, sql } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 
-async function lockPost(tx: Parameters<Parameters<typeof db.transaction>[0]>[0], postId: string) {
-  const result = await tx.select({ id: post.id }).from(post).where(eq(post.id, postId)).for('update');
-  return result.length > 0;
-}
-
 export async function createPost(_prevState: unknown, formData: FormData) {
   const currentUser = await getUser();
   if (!currentUser) {
@@ -50,7 +45,8 @@ export async function createPost(_prevState: unknown, formData: FormData) {
 
   // Auto-upvote own post
   await db.transaction(async (tx) => {
-    if (!await lockPost(tx, newPost.id)) throw new Error('Post not found');
+    const locked = await tx.execute(sql`SELECT id FROM post WHERE id = ${newPost.id} FOR UPDATE`);
+    if (locked.rows.length === 0) throw new Error('Post not found');
     await tx.insert(postVote).values({
       userId: currentUser.userId,
       postId: newPost.id,
@@ -70,7 +66,8 @@ export async function voteOnPost(postId: string, value: number) {
   if (vote !== 1 && vote !== -1) return { error: 'Invalid vote.' };
 
   await db.transaction(async (tx) => {
-    if (!await lockPost(tx, postId)) return;
+    const locked = await tx.execute(sql`SELECT id FROM post WHERE id = ${postId} FOR UPDATE`);
+    if (locked.rows.length === 0) return;
 
     const [existing] = await tx.select().from(postVote)
       .where(and(eq(postVote.userId, currentUser.userId), eq(postVote.postId, postId)));
