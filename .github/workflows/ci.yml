@@ -77,7 +77,7 @@ jobs:
           REPLICATED_API_TOKEN: ${{ secrets.REPLICATED_API_TOKEN }}
         run: |
           CLUSTER_ID=$(replicated cluster create \
-            --distribution k0s \
+            --distribution k3s \
             --nodes 1 \
             --name "ci-didnotreadit-${{ steps.tag.outputs.sha }}" \
             --ttl 1h \
