@@ -100,8 +100,8 @@ jobs:
       - name: Deploy with Helm
         run: |
           helm install didnotreadit chart/ \
-            --set app.image.tag=${{ steps.tag.outputs.sha }} \
-            --set migrations.image.tag=${{ steps.tag.outputs.sha }} \
+            --set app.image.tag=v0.0.0-${{ steps.tag.outputs.sha }} \
+            --set migrations.image.tag=v0.0.0-${{ steps.tag.outputs.sha }} \
             --set postgresql.auth.password=testpassword \
             --wait \
             --timeout 5m
