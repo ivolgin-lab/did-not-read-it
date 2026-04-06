@@ -25,7 +25,8 @@ export async function createComment(_prevState: unknown, formData: FormData) {
   }
 
   await db.transaction(async (tx) => {
-    await tx.execute(sql`SELECT id FROM post WHERE id = ${postId} FOR UPDATE`);
+    const locked = await tx.execute(sql`SELECT id FROM post WHERE id = ${postId} FOR UPDATE`);
+    if (locked.rows.length === 0) throw new Error('Post not found');
 
     const [newComment] = await tx.insert(comment).values({
       body,
@@ -61,7 +62,8 @@ export async function voteOnComment(commentId: string, value: number) {
   if (vote !== 1 && vote !== -1) return { error: 'Invalid vote.' };
 
   await db.transaction(async (tx) => {
-    await tx.execute(sql`SELECT id FROM comment WHERE id = ${commentId} FOR UPDATE`);
+    const locked = await tx.execute(sql`SELECT id FROM comment WHERE id = ${commentId} FOR UPDATE`);
+    if (locked.rows.length === 0) return;
 
     const [existing] = await tx.select().from(commentVote)
       .where(and(eq(commentVote.userId, currentUser.userId), eq(commentVote.commentId, commentId)));

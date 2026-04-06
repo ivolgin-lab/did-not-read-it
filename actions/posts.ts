@@ -45,7 +45,8 @@ export async function createPost(_prevState: unknown, formData: FormData) {
 
   // Auto-upvote own post
   await db.transaction(async (tx) => {
-    await tx.execute(sql`SELECT id FROM post WHERE id = ${newPost.id} FOR UPDATE`);
+    const locked = await tx.execute(sql`SELECT id FROM post WHERE id = ${newPost.id} FOR UPDATE`);
+    if (locked.rows.length === 0) throw new Error('Post not found');
     await tx.insert(postVote).values({
       userId: currentUser.userId,
       postId: newPost.id,
@@ -65,7 +66,8 @@ export async function voteOnPost(postId: string, value: number) {
   if (vote !== 1 && vote !== -1) return { error: 'Invalid vote.' };
 
   await db.transaction(async (tx) => {
-    await tx.execute(sql`SELECT id FROM post WHERE id = ${postId} FOR UPDATE`);
+    const locked = await tx.execute(sql`SELECT id FROM post WHERE id = ${postId} FOR UPDATE`);
+    if (locked.rows.length === 0) return;
 
     const [existing] = await tx.select().from(postVote)
       .where(and(eq(postVote.userId, currentUser.userId), eq(postVote.postId, postId)));
