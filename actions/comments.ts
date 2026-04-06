@@ -6,6 +6,18 @@ import { getUser } from '@/lib/auth';
 import { eq, and, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function lockPost(tx: Tx, postId: string) {
+  const result = await tx.select({ id: post.id }).from(post).where(eq(post.id, postId)).for('update');
+  return result.length > 0;
+}
+
+async function lockComment(tx: Tx, commentId: string) {
+  const result = await tx.select({ id: comment.id }).from(comment).where(eq(comment.id, commentId)).for('update');
+  return result.length > 0;
+}
+
 export async function createComment(_prevState: unknown, formData: FormData) {
   const currentUser = await getUser();
   if (!currentUser) {
@@ -25,8 +37,7 @@ export async function createComment(_prevState: unknown, formData: FormData) {
   }
 
   await db.transaction(async (tx) => {
-    const locked = await tx.execute(sql`SELECT id FROM post WHERE id = ${postId} FOR UPDATE`);
-    if (locked.rows.length === 0) throw new Error('Post not found');
+    if (!await lockPost(tx, postId)) throw new Error('Post not found');
 
     const [newComment] = await tx.insert(comment).values({
       body,
@@ -41,7 +52,7 @@ export async function createComment(_prevState: unknown, formData: FormData) {
     }).where(eq(post.id, postId));
 
     // Auto-upvote own comment
-    await tx.execute(sql`SELECT id FROM comment WHERE id = ${newComment.id} FOR UPDATE`);
+    if (!await lockComment(tx, newComment.id)) throw new Error('Comment not found');
     await tx.insert(commentVote).values({
       userId: currentUser.userId,
       commentId: newComment.id,
@@ -62,8 +73,7 @@ export async function voteOnComment(commentId: string, value: number) {
   if (vote !== 1 && vote !== -1) return { error: 'Invalid vote.' };
 
   await db.transaction(async (tx) => {
-    const locked = await tx.execute(sql`SELECT id FROM comment WHERE id = ${commentId} FOR UPDATE`);
-    if (locked.rows.length === 0) return;
+    if (!await lockComment(tx, commentId)) return;
 
     const [existing] = await tx.select().from(commentVote)
       .where(and(eq(commentVote.userId, currentUser.userId), eq(commentVote.commentId, commentId)));
