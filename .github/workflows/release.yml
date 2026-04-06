@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
   release:
@@ -32,8 +32,6 @@ jobs:
           context: .
           target: ${{ matrix.target }}
           push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/didnotreadit-${{ matrix.target }}:${{ steps.tag.outputs.version }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/didnotreadit-${{ matrix.target }}:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/didnotreadit-${{ matrix.target }}:${{ steps.tag.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
