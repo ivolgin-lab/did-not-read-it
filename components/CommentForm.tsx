@@ -1,7 +1,9 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
+import { useFormState } from 'react-dom';
 import { createComment } from '@/actions/comments';
+import SubmitButton from './SubmitButton';
 
 interface CommentFormProps {
   postId: string;
@@ -10,7 +12,7 @@ interface CommentFormProps {
 
 export default function CommentForm({ postId, parentId }: CommentFormProps) {
   const [showForm, setShowForm] = useState(!parentId);
-  const [state, formAction, isPending] = useActionState(createComment, null);
+  const [state, formAction] = useFormState(createComment, null);
 
   if (parentId && !showForm) {
     return (
@@ -32,9 +34,7 @@ export default function CommentForm({ postId, parentId }: CommentFormProps) {
       />
       {state?.error && <div className="form-error">{state.error}</div>}
       <div className="comment-form-actions">
-        <button type="submit" className="btn" disabled={isPending}>
-          {isPending ? 'submitting...' : parentId ? 'reply' : 'comment'}
-        </button>
+        <SubmitButton label={parentId ? 'reply' : 'comment'} pendingLabel="submitting..." />
         {parentId && (
           <button type="button" className="link-button" onClick={() => setShowForm(false)}>
             cancel

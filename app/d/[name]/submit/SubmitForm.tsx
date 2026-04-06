@@ -1,7 +1,9 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
+import { useFormState } from 'react-dom';
 import { createPost } from '@/actions/posts';
+import SubmitButton from '@/components/SubmitButton';
 
 interface SubmitFormProps {
   didnotreaditId: string;
@@ -10,7 +12,7 @@ interface SubmitFormProps {
 
 export default function SubmitForm({ didnotreaditId }: SubmitFormProps) {
   const [postType, setPostType] = useState<'text' | 'link'>('text');
-  const [state, formAction, isPending] = useActionState(createPost, null);
+  const [state, formAction] = useFormState(createPost, null);
 
   return (
     <form action={formAction} className="create-form">
@@ -52,9 +54,7 @@ export default function SubmitForm({ didnotreaditId }: SubmitFormProps) {
       )}
 
       {state?.error && <div className="form-error">{state.error}</div>}
-      <button type="submit" className="btn" disabled={isPending}>
-        {isPending ? 'submitting...' : 'submit'}
-      </button>
+      <SubmitButton label="submit" pendingLabel="submitting..." />
     </form>
   );
 }

@@ -1,11 +1,12 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useFormState } from 'react-dom';
 import { login } from '@/actions/auth';
 import Link from 'next/link';
+import SubmitButton from '@/components/SubmitButton';
 
 export default function LoginPage() {
-  const [state, formAction, isPending] = useActionState(login, null);
+  const [state, formAction] = useFormState(login, null);
 
   return (
     <div className="auth-page">
@@ -20,9 +21,7 @@ export default function LoginPage() {
           <input type="password" name="password" required />
         </label>
         {state?.error && <div className="form-error">{state.error}</div>}
-        <button type="submit" className="btn" disabled={isPending}>
-          {isPending ? 'logging in...' : 'login'}
-        </button>
+        <SubmitButton label="login" pendingLabel="logging in..." />
       </form>
       <p className="auth-switch">
         new to did-not-read-it? <Link href="/register">register</Link>

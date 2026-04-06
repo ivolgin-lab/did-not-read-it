@@ -1,11 +1,12 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useFormState } from 'react-dom';
 import { register } from '@/actions/auth';
 import Link from 'next/link';
+import SubmitButton from '@/components/SubmitButton';
 
 export default function RegisterPage() {
-  const [state, formAction, isPending] = useActionState(register, null);
+  const [state, formAction] = useFormState(register, null);
 
   return (
     <div className="auth-page">
@@ -20,9 +21,7 @@ export default function RegisterPage() {
           <input type="password" name="password" required minLength={6} />
         </label>
         {state?.error && <div className="form-error">{state.error}</div>}
-        <button type="submit" className="btn" disabled={isPending}>
-          {isPending ? 'registering...' : 'register'}
-        </button>
+        <SubmitButton label="register" pendingLabel="registering..." />
       </form>
       <p className="auth-switch">
         already a didnotreader? <Link href="/login">login</Link>

@@ -384,6 +384,12 @@ a:hover {
   color: #222;
 }
 
+.label-hint {
+  font-weight: normal;
+  color: #888;
+  font-size: 11px;
+}
+
 .create-form label {
   display: block;
   margin-bottom: 12px;
