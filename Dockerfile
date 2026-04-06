@@ -16,8 +16,8 @@ FROM base AS dev
 FROM base AS build
 RUN npm run build
 
-# Production UI target
-FROM base AS ui
+# Production app target
+FROM base AS app
 COPY --from=build /app/.next ./.next
 CMD ["npm", "start"]
 

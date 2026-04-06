@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [ui, migrations]
+        target: [app, migrations]
     steps:
       - uses: actions/checkout@v4
 
