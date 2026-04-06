@@ -54,17 +54,10 @@ Migrations image
 {{- end }}
 
 {{/*
-Database URL — either from external config or built from bitnami subchart
+Image pull secret name
 */}}
-{{- define "didnotreadit.databaseUrl" -}}
-{{- if not .Values.postgresql.enabled }}
-{{- required "externalDatabase.url is required when postgresql.enabled is false" .Values.externalDatabase.url }}
-{{- else }}
-{{- $host := printf "%s-postgresql" .Release.Name }}
-{{- $user := .Values.postgresql.auth.username }}
-{{- $db := .Values.postgresql.auth.database }}
-{{- printf "postgresql://%s:$(POSTGRES_PASSWORD)@%s:5432/%s" $user $host $db }}
-{{- end }}
+{{- define "didnotreadit.pullSecretName" -}}
+{{ include "didnotreadit.fullname" . }}-pull-secret
 {{- end }}
 
 {{/*

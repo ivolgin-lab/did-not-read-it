@@ -17,6 +17,10 @@ spec:
         {{- include "didnotreadit.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: app
     spec:
+      {{- if and .Values.imagePullSecret.registry .Values.imagePullSecret.username .Values.imagePullSecret.password }}
+      imagePullSecrets:
+        - name: {{ include "didnotreadit.pullSecretName" . }}
+      {{- end }}
       containers:
         - name: app
           image: {{ include "didnotreadit.appImage" . }}
@@ -27,22 +31,11 @@ spec:
               containerPort: 3000
               protocol: TCP
           env:
-            {{- if .Values.postgresql.enabled }}
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Release.Name }}-postgresql
-                  key: password
-            {{- end }}
             - name: DATABASE_URL
-              {{- if .Values.postgresql.enabled }}
-              value: {{ include "didnotreadit.databaseUrl" . | quote }}
-              {{- else }}
               valueFrom:
                 secretKeyRef:
                   name: {{ include "didnotreadit.secretName" . }}
                   key: database-url
-              {{- end }}
             - name: SESSION_SECRET
               valueFrom:
                 secretKeyRef:

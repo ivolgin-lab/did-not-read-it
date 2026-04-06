@@ -103,6 +103,11 @@ jobs:
             --set app.image.tag=v0.0.0-${{ steps.tag.outputs.sha }} \
             --set migrations.image.tag=v0.0.0-${{ steps.tag.outputs.sha }} \
             --set postgresql.auth.password=testpassword \
+            --set imagePullSecret.registry=dhi.io \
+            --set imagePullSecret.username=${{ secrets.DOCKERHUB_USERNAME }} \
+            --set imagePullSecret.password=${{ secrets.DOCKERHUB_PASSWORD }} \
+            --set "global.imagePullSecrets[0]=didnotreadit-pull-secret" \
+            --set global.security.allowInsecureImages=true \
             --wait \
             --timeout 5m
 
