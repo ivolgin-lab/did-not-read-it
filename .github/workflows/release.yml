@@ -1,4 +1,4 @@
-name: Release
+name: Stable Release
 
 on:
   push:
@@ -6,8 +6,18 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
-  release:
+  version:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: version
     strategy:
       matrix:
         target: [app, migrations]
@@ -22,16 +32,25 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      - name: Extract tag
-        id: tag
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
-
       - name: Build and push ${{ matrix.target }} image
         uses: docker/build-push-action@v6
         with:
           context: .
           target: ${{ matrix.target }}
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/didnotreadit-${{ matrix.target }}:${{ steps.tag.outputs.version }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/didnotreadit-${{ matrix.target }}:${{ needs.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  replicated:
+    needs: [version, docker]
+    uses: ./.github/workflows/replicated-release.yml
+    with:
+      channel: Stable
+      version: ${{ needs.version.outputs.version }}
+    secrets:
+      REPLICATED_API_TOKEN: ${{ secrets.REPLICATED_API_TOKEN }}
+      REPLICATED_APP: ${{ secrets.REPLICATED_APP }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
