@@ -1,0 +1,174 @@
+name: Unstable Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set version
+        id: version
+        run: |
+          SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          VERSION="0.$(date -u +%Y%m%d.%H%M%S)-${SHA}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build Next.js
+        run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        target: [app, migrations]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Build and push ${{ matrix.target }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: ${{ matrix.target }}
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/didnotreadit-${{ matrix.target }}:${{ needs.build.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [build, docker]
+    outputs:
+      channel-slug: ${{ steps.create-release.outputs.channel-slug }}
+      release-sequence: ${{ steps.create-release.outputs.release-sequence }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Package Helm chart
+        run: |
+          helm dependency build chart/
+          helm package chart/ --version ${{ needs.build.outputs.version }} --app-version ${{ needs.build.outputs.version }}
+
+      - name: Create Replicated release
+        id: create-release
+        uses: replicatedhq/replicated-actions/create-release@v1
+        with:
+          app-slug: ${{ secrets.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          chart: didnotreadit-${{ needs.build.outputs.version }}.tgz
+          promote-channel: Unstable
+          version: ${{ needs.build.outputs.version }}
+
+  test:
+    runs-on: ubuntu-latest
+    needs: [build, release]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create customer
+        id: create-customer
+        uses: replicatedhq/replicated-actions/create-customer@v1
+        with:
+          app-slug: ${{ secrets.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          customer-name: ci-unstable-${{ needs.build.outputs.version }}
+          channel-slug: ${{ needs.release.outputs.channel-slug }}
+          customer-email: ci-unstable@example.com
+          expires-in: 1
+          license-type: dev
+
+      - name: Create CMX k3s cluster
+        id: create-cluster
+        uses: replicatedhq/replicated-actions/create-cluster@v1
+        with:
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          kubernetes-distribution: k3s
+          kubernetes-version: "1.31"
+          cluster-name: ci-unstable-${{ needs.build.outputs.version }}
+          ttl: 30m
+          timeout-minutes: 5
+
+      - name: Install via Replicated registry
+        uses: replicatedhq/replicated-actions/helm-install@v1
+        with:
+          kubeconfig: ${{ steps.create-cluster.outputs.cluster-kubeconfig }}
+          chart: oci://registry.replicated.com/${{ secrets.REPLICATED_APP }}/${{ needs.release.outputs.channel-slug }}/didnotreadit
+          name: didnotreadit
+          version: ${{ needs.build.outputs.version }}
+          namespace: default
+          registry-username: ci-unstable@example.com
+          registry-password: ${{ steps.create-customer.outputs.license-id }}
+          values: |
+            app:
+              image:
+                tag: ${{ needs.build.outputs.version }}
+            migrations:
+              image:
+                tag: ${{ needs.build.outputs.version }}
+            postgresql:
+              auth:
+                password: testpassword
+            imagePullSecret:
+              registry: dhi.io
+              username: ${{ secrets.DOCKERHUB_USERNAME }}
+              password: ${{ secrets.DOCKERHUB_PASSWORD }}
+            global:
+              imagePullSecrets:
+                - didnotreadit-pull-secret
+              security:
+                allowInsecureImages: true
+
+      - name: Test /api/health returns 200
+        run: |
+          echo "${{ steps.create-cluster.outputs.cluster-kubeconfig }}" > kubeconfig.yaml
+          export KUBECONFIG=kubeconfig.yaml
+          kubectl rollout status deployment/didnotreadit-app --timeout=120s
+          kubectl port-forward svc/didnotreadit-app 3000:3000 &
+          sleep 5
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health)
+          echo "Status: $STATUS"
+          [ "$STATUS" = "200" ]
+
+      - name: Remove cluster
+        if: always()
+        uses: replicatedhq/replicated-actions/remove-cluster@v1
+        continue-on-error: true
+        with:
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          cluster-id: ${{ steps.create-cluster.outputs.cluster-id }}
+
+      - name: Archive customer
+        if: always()
+        uses: replicatedhq/replicated-actions/archive-customer@v1
+        continue-on-error: true
+        with:
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          customer-id: ${{ steps.create-customer.outputs.customer-id }}
