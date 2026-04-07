@@ -104,6 +104,7 @@ jobs:
           customer-email: ci-unstable@example.com
           expires-in: 1
           license-type: dev
+          is-kots-install-enabled: "false"
 
       - name: Create CMX k3s cluster
         id: create-cluster
