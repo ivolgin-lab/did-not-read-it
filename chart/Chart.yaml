@@ -13,4 +13,5 @@ dependencies:
   - name: replicated
     version: "1.19.0"
     repository: oci://registry.replicated.com/library
+    condition: replicated.enabled
 
