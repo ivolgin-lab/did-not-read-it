@@ -1,7 +1,7 @@
 app:
   replicaCount: 1
   image:
-    repository: ivolginlab/didnotreadit-app
+    repository: proxy.ivolg.in/proxy/didnotreadit/index.docker.io/ivolginlab/didnotreadit-app
     tag: ""  # defaults to Chart.appVersion
     pullPolicy: IfNotPresent
   service:
@@ -19,7 +19,7 @@ app:
 
 migrations:
   image:
-    repository: ivolginlab/didnotreadit-migrations
+    repository: proxy.ivolg.in/proxy/didnotreadit/index.docker.io/ivolginlab/didnotreadit-migrations
     tag: ""  # defaults to Chart.appVersion
     pullPolicy: IfNotPresent
 
@@ -27,8 +27,8 @@ migrations:
 postgresql:
   enabled: true
   image:
-    registry: dhi.io
-    repository: postgres
+    registry: proxy.ivolg.in
+    repository: proxy/didnotreadit/dhi.io/postgres
     tag: 16-alpine3.22
   auth:
     username: didnotreadit
@@ -37,6 +37,7 @@ postgresql:
   primary:
     containerSecurityContext:
       runAsUser: 70
+      runAsGroup: 70
     podSecurityContext:
       fsGroup: 70
     persistence:
@@ -46,17 +47,16 @@ postgresql:
 # Supports multiple registries (e.g. Docker Hub + dhi.io)
 imagePullSecret:
   credentials: []
-  # - registry: docker.io
+  # - registry: proxy.ivolg.in
   #   username: ""
-  #   password: ""
-  # - registry: dhi.io
-  #   username: ""
-  #   password: ""
+  #   password: ""  # license ID
 
 # Replicated SDK subchart — requires a license, disable for plain Helm installs
 replicated:
   enabled: true
   nameOverride: didnotreadit-sdk
+  image:
+    registry: proxy.ivolg.in
 
 # External database — used when postgresql.enabled is false
 externalDatabase:
