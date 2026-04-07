@@ -12,7 +12,7 @@ app:
     enabled: false
     className: ""
     annotations: {}
-    host: ""
+    hosts: []
     tls:
       enabled: false
       secretName: ""
