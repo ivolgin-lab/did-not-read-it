@@ -100,8 +100,12 @@ jobs:
       - name: Deploy with Helm
         run: |
           helm install didnotreadit chart/ \
+            --set app.image.repository=${{ secrets.DOCKERHUB_USERNAME }}/didnotreadit-app \
             --set app.image.tag=v0.0.0-${{ steps.tag.outputs.sha }} \
+            --set migrations.image.repository=${{ secrets.DOCKERHUB_USERNAME }}/didnotreadit-migrations \
             --set migrations.image.tag=v0.0.0-${{ steps.tag.outputs.sha }} \
+            --set postgresql.image.registry=dhi.io \
+            --set postgresql.image.repository=postgres \
             --set postgresql.auth.password=testpassword \
             --set imagePullSecret.credentials[0].registry=docker.io \
             --set imagePullSecret.credentials[0].username=${{ secrets.DOCKERHUB_USERNAME }} \
