@@ -112,7 +112,7 @@ jobs:
         with:
           api-token: ${{ secrets.REPLICATED_API_TOKEN }}
           kubernetes-distribution: k3s
-          kubernetes-version: "1.31"
+          kubernetes-version: "1.32"
           cluster-name: ci-unstable-${{ needs.build.outputs.version }}
           ttl: 30m
           timeout-minutes: 5
