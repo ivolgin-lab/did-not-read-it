@@ -121,6 +121,7 @@ jobs:
         uses: replicatedhq/replicated-actions/helm-install@v1
         with:
           kubeconfig: ${{ steps.create-cluster.outputs.cluster-kubeconfig }}
+          helm-path: helm
           chart: oci://registry.replicated.com/${{ secrets.REPLICATED_APP }}/${{ needs.release.outputs.channel-slug }}/didnotreadit
           name: didnotreadit
           version: ${{ needs.build.outputs.version }}
