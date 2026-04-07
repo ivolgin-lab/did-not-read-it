@@ -61,6 +61,21 @@ Image pull secret name
 {{- end }}
 
 {{/*
+Docker config JSON with multiple registry credentials
+*/}}
+{{- define "didnotreadit.dockerconfigjson" -}}
+{"auths":{
+{{- $first := true }}
+{{- range .Values.imagePullSecret.credentials }}
+{{- if not $first }},{{ end }}
+{{- $auth := printf "%s:%s" .username .password | b64enc }}
+{{ .registry | quote }}: {"username":{{ .username | quote }},"password":{{ .password | quote }},"auth":{{ $auth | quote }}}
+{{- $first = false }}
+{{- end }}
+}}
+{{- end }}
+
+{{/*
 Secret name for the app
 */}}
 {{- define "didnotreadit.secretName" -}}

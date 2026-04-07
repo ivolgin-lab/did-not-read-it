@@ -103,9 +103,12 @@ jobs:
             --set app.image.tag=v0.0.0-${{ steps.tag.outputs.sha }} \
             --set migrations.image.tag=v0.0.0-${{ steps.tag.outputs.sha }} \
             --set postgresql.auth.password=testpassword \
-            --set imagePullSecret.registry=dhi.io \
-            --set imagePullSecret.username=${{ secrets.DOCKERHUB_USERNAME }} \
-            --set imagePullSecret.password=${{ secrets.DOCKERHUB_PASSWORD }} \
+            --set imagePullSecret.credentials[0].registry=docker.io \
+            --set imagePullSecret.credentials[0].username=${{ secrets.DOCKERHUB_USERNAME }} \
+            --set imagePullSecret.credentials[0].password=${{ secrets.DOCKERHUB_PASSWORD }} \
+            --set imagePullSecret.credentials[1].registry=dhi.io \
+            --set imagePullSecret.credentials[1].username=${{ secrets.DOCKERHUB_USERNAME }} \
+            --set imagePullSecret.credentials[1].password=${{ secrets.DOCKERHUB_PASSWORD }} \
             --set "global.imagePullSecrets[0]=didnotreadit-pull-secret" \
             --set global.security.allowInsecureImages=true \
             --wait \

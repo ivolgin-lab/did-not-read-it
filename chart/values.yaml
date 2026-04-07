@@ -42,11 +42,16 @@ postgresql:
     persistence:
       size: 10Gi
 
-# Image pull credentials — creates a pull secret when all three are set
+# Image pull credentials — creates a pull secret when credentials are provided
+# Supports multiple registries (e.g. Docker Hub + dhi.io)
 imagePullSecret:
-  registry: ""
-  username: ""
-  password: ""
+  credentials: []
+  # - registry: docker.io
+  #   username: ""
+  #   password: ""
+  # - registry: dhi.io
+  #   username: ""
+  #   password: ""
 
 # External database — used when postgresql.enabled is false
 externalDatabase:
