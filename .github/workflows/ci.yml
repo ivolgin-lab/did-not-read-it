@@ -51,7 +51,6 @@ jobs:
           target: ${{ matrix.target }}
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/didnotreadit-${{ matrix.target }}:${{ steps.tag.outputs.sha }}
             ${{ secrets.DOCKERHUB_USERNAME }}/didnotreadit-${{ matrix.target }}:v0.0.0-${{ steps.tag.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
