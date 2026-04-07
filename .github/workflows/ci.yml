@@ -55,15 +55,14 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  test:
+  release:
     runs-on: ubuntu-latest
     needs: docker
+    outputs:
+      channel-slug: ${{ steps.create-release.outputs.channel-slug }}
+      release-sequence: ${{ steps.create-release.outputs.release-sequence }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Replicated CLI
-        run: |
-          curl -sL https://github.com/replicatedhq/replicated/releases/download/v0.124.5/replicated_0.124.5_linux_amd64.tar.gz | tar xz -C /usr/local/bin replicated
 
       - name: Install Helm
         uses: azure/setup-helm@v4
@@ -72,60 +71,120 @@ jobs:
         id: tag
         run: echo "sha=$(echo ${{ github.event.pull_request.head.sha }} | cut -c1-7)" >> "$GITHUB_OUTPUT"
 
+      - name: Package Helm chart
+        run: |
+          helm dependency build chart/
+          helm package chart/ --version 0.0.0-${{ steps.tag.outputs.sha }} --app-version v0.0.0-${{ steps.tag.outputs.sha }}
+
+      - name: Create Replicated release
+        id: create-release
+        uses: replicatedhq/replicated-actions/create-release@v1
+        with:
+          app-slug: ${{ secrets.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          chart: didnotreadit-0.0.0-${{ steps.tag.outputs.sha }}.tgz
+          promote-channel: ci-${{ github.event.pull_request.number }}
+          version: 0.0.0-${{ steps.tag.outputs.sha }}
+
+  test:
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: tag
+        run: echo "sha=$(echo ${{ github.event.pull_request.head.sha }} | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
+      - name: Create customer
+        id: create-customer
+        uses: replicatedhq/replicated-actions/create-customer@v1
+        with:
+          app-slug: ${{ secrets.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          customer-name: ci-pr${{ github.event.pull_request.number }}
+          channel-slug: ${{ needs.release.outputs.channel-slug }}
+          customer-email: ci-pr${{ github.event.pull_request.number }}@example.com
+          expires-in: 1
+          license-type: dev
+
       - name: Create CMX k3s cluster
-        id: cluster
-        env:
-          REPLICATED_API_TOKEN: ${{ secrets.REPLICATED_API_TOKEN }}
+        id: create-cluster
+        uses: replicatedhq/replicated-actions/create-cluster@v1
+        with:
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          kubernetes-distribution: k3s
+          kubernetes-version: "1.31"
+          cluster-name: ci-didnotreadit-${{ steps.tag.outputs.sha }}
+          ttl: 30m
+          timeout-minutes: 5
+
+      - name: Install via Replicated registry
+        uses: replicatedhq/replicated-actions/helm-install@v1
+        with:
+          kubeconfig: ${{ steps.create-cluster.outputs.cluster-kubeconfig }}
+          chart: oci://registry.replicated.com/${{ secrets.REPLICATED_APP }}/${{ needs.release.outputs.channel-slug }}/didnotreadit
+          name: didnotreadit
+          version: 0.0.0-${{ steps.tag.outputs.sha }}
+          namespace: default
+          registry-username: ci-pr${{ github.event.pull_request.number }}@example.com
+          registry-password: ${{ steps.create-customer.outputs.license-id }}
+          values: |
+            app:
+              image:
+                tag: v0.0.0-${{ steps.tag.outputs.sha }}
+            migrations:
+              image:
+                tag: v0.0.0-${{ steps.tag.outputs.sha }}
+            postgresql:
+              auth:
+                password: testpassword
+            imagePullSecret:
+              registry: dhi.io
+              username: ${{ secrets.DOCKERHUB_USERNAME }}
+              password: ${{ secrets.DOCKERHUB_PASSWORD }}
+            global:
+              imagePullSecrets:
+                - didnotreadit-pull-secret
+              security:
+                allowInsecureImages: true
+
+      - name: Test /api/health returns 200
         run: |
-          CLUSTER_ID=$(replicated cluster create \
-            --distribution k3s \
-            --nodes 1 \
-            --name "ci-didnotreadit-${{ steps.tag.outputs.sha }}" \
-            --ttl 1h \
-            --wait 5m \
-            -ojson | jq -r '.id')
-          echo "id=$CLUSTER_ID" >> "$GITHUB_OUTPUT"
-
-      - name: Get kubeconfig
-        env:
-          REPLICATED_API_TOKEN: ${{ secrets.REPLICATED_API_TOKEN }}
-        run: |
-          replicated cluster kubeconfig ${{ steps.cluster.outputs.id }} --output-path kubeconfig
-          echo "KUBECONFIG=$(pwd)/kubeconfig" >> "$GITHUB_ENV"
-
-      - name: Build Helm dependencies
-        run: helm dependency build chart/
-
-      - name: Deploy with Helm
-        run: |
-          helm install didnotreadit chart/ \
-            --set app.image.tag=v0.0.0-${{ steps.tag.outputs.sha }} \
-            --set migrations.image.tag=v0.0.0-${{ steps.tag.outputs.sha }} \
-            --set postgresql.auth.password=testpassword \
-            --set imagePullSecret.registry=dhi.io \
-            --set imagePullSecret.username=${{ secrets.DOCKERHUB_USERNAME }} \
-            --set imagePullSecret.password=${{ secrets.DOCKERHUB_PASSWORD }} \
-            --set "global.imagePullSecrets[0]=didnotreadit-pull-secret" \
-            --set global.security.allowInsecureImages=true \
-            --wait \
-            --timeout 5m
-
-      - name: Wait for app to be ready
-        run: kubectl rollout status deployment/didnotreadit-app --timeout=120s
-
-      - name: Test /d/all returns 200
-        run: |
+          echo "${{ steps.create-cluster.outputs.cluster-kubeconfig }}" > kubeconfig.yaml
+          export KUBECONFIG=kubeconfig.yaml
+          kubectl rollout status deployment/didnotreadit-app --timeout=120s
           kubectl port-forward svc/didnotreadit-app 3000:3000 &
           sleep 5
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/d/all)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health)
           echo "Status: $STATUS"
           [ "$STATUS" = "200" ]
 
-      - name: Delete CMX cluster
+      - name: Remove cluster
         if: always()
-        env:
-          REPLICATED_API_TOKEN: ${{ secrets.REPLICATED_API_TOKEN }}
-        run: |
-          if [ -n "${{ steps.cluster.outputs.id }}" ]; then
-            replicated cluster rm ${{ steps.cluster.outputs.id }}
-          fi
+        uses: replicatedhq/replicated-actions/remove-cluster@v1
+        continue-on-error: true
+        with:
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          cluster-id: ${{ steps.create-cluster.outputs.cluster-id }}
+
+      - name: Archive customer
+        if: always()
+        uses: replicatedhq/replicated-actions/archive-customer@v1
+        continue-on-error: true
+        with:
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          customer-id: ${{ steps.create-customer.outputs.customer-id }}
+
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: [test, release]
+    if: always()
+    steps:
+      - name: Archive channel
+        uses: replicatedhq/replicated-actions/archive-channel@v1
+        continue-on-error: true
+        with:
+          app-slug: ${{ secrets.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          channel-slug: ${{ needs.release.outputs.channel-slug }}
