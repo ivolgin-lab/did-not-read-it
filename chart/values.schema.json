@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "app": {
+      "type": "object",
+      "properties": {
+        "replicaCount": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of app replicas"
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": { "type": "string", "description": "App container image repository" },
+            "tag": { "type": "string", "description": "Image tag; defaults to Chart.appVersion" },
+            "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+          }
+        },
+        "service": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer"] },
+            "port": { "type": "integer", "minimum": 1, "maximum": 65535 }
+          }
+        },
+        "sessionSecret": {
+          "type": "string",
+          "description": "Session cookie secret; auto-generated if empty"
+        },
+        "ingress": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "description": "Enable ingress resource" },
+            "className": { "type": "string", "description": "Ingress class name" },
+            "annotations": { "type": "object", "additionalProperties": { "type": "string" } },
+            "hosts": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "List of hostnames for the ingress"
+            },
+            "tls": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean", "description": "Enable TLS on the ingress" },
+                "secretName": { "type": "string", "description": "TLS secret name; auto-generated if empty" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "migrations": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": { "type": "string", "description": "Migrations container image repository" },
+            "tag": { "type": "string", "description": "Image tag; defaults to Chart.appVersion" },
+            "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+          }
+        }
+      }
+    },
+    "postgresql": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Deploy the bundled PostgreSQL subchart"
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "registry": { "type": "string" },
+            "repository": { "type": "string" },
+            "tag": { "type": "string" }
+          }
+        },
+        "auth": {
+          "type": "object",
+          "properties": {
+            "username": { "type": "string" },
+            "password": { "type": "string" },
+            "database": { "type": "string" }
+          }
+        },
+        "primary": {
+          "type": "object",
+          "properties": {
+            "containerSecurityContext": { "type": "object" },
+            "podSecurityContext": { "type": "object" },
+            "persistence": {
+              "type": "object",
+              "properties": {
+                "size": { "type": "string", "description": "PVC size for PostgreSQL data" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "imagePullSecret": {
+      "type": "object",
+      "description": "Creates a pull secret when all three fields are set",
+      "properties": {
+        "registry": { "type": "string" },
+        "username": { "type": "string" },
+        "password": { "type": "string" }
+      }
+    },
+    "externalDatabase": {
+      "type": "object",
+      "description": "External database connection; used when postgresql.enabled is false",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "PostgreSQL connection URL, e.g. postgresql://user:pass@host:5432/dbname"
+        }
+      }
+    }
+  }
+}
