@@ -1,0 +1,139 @@
+name: Replicated Release
+
+on:
+  workflow_call:
+    inputs:
+      channel:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+    secrets:
+      REPLICATED_API_TOKEN:
+        required: true
+      REPLICATED_APP:
+        required: true
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_PASSWORD:
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      channel-slug: ${{ steps.create-release.outputs.channel-slug }}
+      release-sequence: ${{ steps.create-release.outputs.release-sequence }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Package Helm chart
+        run: |
+          helm dependency build chart/
+          helm package chart/ --version ${{ inputs.version }} --app-version ${{ inputs.version }}
+
+      - name: Create Replicated release
+        id: create-release
+        uses: replicatedhq/replicated-actions/create-release@v1
+        with:
+          app-slug: ${{ secrets.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          chart: didnotreadit-${{ inputs.version }}.tgz
+          promote-channel: ${{ inputs.channel }}
+          version: ${{ inputs.version }}
+
+  test:
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create customer
+        id: create-customer
+        uses: replicatedhq/replicated-actions/create-customer@v1
+        with:
+          app-slug: ${{ secrets.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          customer-name: ci-${{ inputs.channel }}-${{ inputs.version }}
+          channel-slug: ${{ needs.release.outputs.channel-slug }}
+          customer-email: ci-${{ inputs.channel }}@example.com
+          expires-in: 1
+          license-type: dev
+          is-kots-install-enabled: "false"
+
+      - name: Create CMX k3s cluster
+        id: create-cluster
+        uses: replicatedhq/replicated-actions/create-cluster@v1
+        with:
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          kubernetes-distribution: k3s
+          kubernetes-version: "1.32"
+          cluster-name: ci-${{ inputs.channel }}-${{ inputs.version }}
+          ttl: 30m
+          timeout-minutes: 5
+
+      - name: Install via Replicated registry
+        uses: replicatedhq/replicated-actions/helm-install@v1
+        with:
+          kubeconfig: ${{ steps.create-cluster.outputs.cluster-kubeconfig }}
+          helm-path: helm
+          chart: oci://registry.replicated.com/${{ secrets.REPLICATED_APP }}/${{ needs.release.outputs.channel-slug }}/didnotreadit
+          name: didnotreadit
+          version: ${{ inputs.version }}
+          namespace: default
+          registry-username: ci-${{ inputs.channel }}@example.com
+          registry-password: ${{ steps.create-customer.outputs.license-id }}
+          values: |
+            app:
+              image:
+                tag: ${{ inputs.version }}
+            migrations:
+              image:
+                tag: ${{ inputs.version }}
+            postgresql:
+              auth:
+                password: testpassword
+            imagePullSecret:
+              credentials:
+                - registry: docker.io
+                  username: ${{ secrets.DOCKERHUB_USERNAME }}
+                  password: ${{ secrets.DOCKERHUB_PASSWORD }}
+                - registry: dhi.io
+                  username: ${{ secrets.DOCKERHUB_USERNAME }}
+                  password: ${{ secrets.DOCKERHUB_PASSWORD }}
+            global:
+              imagePullSecrets:
+                - didnotreadit-pull-secret
+              security:
+                allowInsecureImages: true
+
+      - name: Test /api/health returns 200
+        run: |
+          echo "${{ steps.create-cluster.outputs.cluster-kubeconfig }}" > kubeconfig.yaml
+          export KUBECONFIG=kubeconfig.yaml
+          kubectl rollout status deployment/didnotreadit-app --timeout=120s
+          kubectl port-forward svc/didnotreadit-app 3000:3000 &
+          sleep 5
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health)
+          echo "Status: $STATUS"
+          [ "$STATUS" = "200" ]
+
+      - name: Remove cluster
+        if: always()
+        uses: replicatedhq/replicated-actions/remove-cluster@v1
+        continue-on-error: true
+        with:
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          cluster-id: ${{ steps.create-cluster.outputs.cluster-id }}
+
+      - name: Archive customer
+        if: always()
+        uses: replicatedhq/replicated-actions/archive-customer@v1
+        continue-on-error: true
+        with:
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          customer-id: ${{ steps.create-customer.outputs.customer-id }}
