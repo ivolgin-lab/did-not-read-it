@@ -109,8 +109,9 @@ jobs:
             --set imagePullSecret.credentials[1].registry=dhi.io \
             --set imagePullSecret.credentials[1].username=${{ secrets.DOCKERHUB_USERNAME }} \
             --set imagePullSecret.credentials[1].password=${{ secrets.DOCKERHUB_PASSWORD }} \
-            --set "global.imagePullSecrets[0]=didnotreadit-pull-secret" \
+            --set "global.imagePullSecrets[0].name=didnotreadit-pull-secret" \
             --set global.security.allowInsecureImages=true \
+            --set replicated.enabled=false \
             --wait \
             --timeout 5m
 

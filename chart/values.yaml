@@ -53,6 +53,11 @@ imagePullSecret:
   #   username: ""
   #   password: ""
 
+# Replicated SDK subchart — requires a license, disable for plain Helm installs
+replicated:
+  enabled: true
+  nameOverride: didnotreadit-sdk
+
 # External database — used when postgresql.enabled is false
 externalDatabase:
   url: ""  # e.g. postgresql://user:pass@host:5432/dbname
