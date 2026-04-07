@@ -72,6 +72,8 @@ spec:
                 secretKeyRef:
                   name: {{ include "didnotreadit.secretName" . }}
                   key: session-secret
+            - name: COOKIE_SECURE
+              value: {{ .Values.app.ingress.tls.enabled | quote }}
             - name: METRICS_ENABLED
               value: {{ .Values.app.metrics.enabled | quote }}
             - name: METRICS_INTERVAL_MS
