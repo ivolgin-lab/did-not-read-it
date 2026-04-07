@@ -138,9 +138,13 @@ jobs:
               auth:
                 password: testpassword
             imagePullSecret:
-              registry: dhi.io
-              username: ${{ secrets.DOCKERHUB_USERNAME }}
-              password: ${{ secrets.DOCKERHUB_PASSWORD }}
+              credentials:
+                - registry: docker.io
+                  username: ${{ secrets.DOCKERHUB_USERNAME }}
+                  password: ${{ secrets.DOCKERHUB_PASSWORD }}
+                - registry: dhi.io
+                  username: ${{ secrets.DOCKERHUB_USERNAME }}
+                  password: ${{ secrets.DOCKERHUB_PASSWORD }}
             global:
               imagePullSecrets:
                 - didnotreadit-pull-secret

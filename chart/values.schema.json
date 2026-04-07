@@ -104,11 +104,21 @@
     },
     "imagePullSecret": {
       "type": "object",
-      "description": "Creates a pull secret when all three fields are set",
+      "description": "Creates a pull secret when credentials are provided",
       "properties": {
-        "registry": { "type": "string" },
-        "username": { "type": "string" },
-        "password": { "type": "string" }
+        "credentials": {
+          "type": "array",
+          "description": "List of registry credentials; supports multiple registries",
+          "items": {
+            "type": "object",
+            "properties": {
+              "registry": { "type": "string", "description": "Registry hostname (e.g. docker.io, dhi.io)" },
+              "username": { "type": "string" },
+              "password": { "type": "string" }
+            },
+            "required": ["registry", "username", "password"]
+          }
+        }
       }
     },
     "externalDatabase": {

@@ -17,7 +17,7 @@ spec:
         {{- include "didnotreadit.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: app
     spec:
-      {{- if and .Values.imagePullSecret.registry .Values.imagePullSecret.username .Values.imagePullSecret.password }}
+      {{- if .Values.imagePullSecret.credentials }}
       imagePullSecrets:
         - name: {{ include "didnotreadit.pullSecretName" . }}
       {{- end }}
