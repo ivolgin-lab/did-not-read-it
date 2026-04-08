@@ -72,6 +72,13 @@ replicated:
   image:
     registry: proxy.ivolg.in
 
+# Global settings for subcharts (bitnami postgresql, replicated SDK)
+global:
+  security:
+    allowInsecureImages: true  # proxied images aren't signed by bitnami
+  imagePullSecrets:
+    - name: enterprise-pull-secret  # created by replicated SDK subchart
+
 # External database — used when postgresql.enabled is false
 externalDatabase:
   url: ""  # e.g. postgresql://user:pass@host:5432/dbname
