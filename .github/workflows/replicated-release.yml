@@ -111,14 +111,14 @@ jobs:
               security:
                 allowInsecureImages: true
 
-      - name: Test /api/health returns 200
+      - name: Test /d/all returns 200
         run: |
           echo "${{ steps.create-cluster.outputs.cluster-kubeconfig }}" > kubeconfig.yaml
           export KUBECONFIG=kubeconfig.yaml
           kubectl rollout status deployment/didnotreadit-app --timeout=120s
           kubectl port-forward svc/didnotreadit-app 3000:3000 &
           sleep 5
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/d/all)
           echo "Status: $STATUS"
           [ "$STATUS" = "200" ]
 

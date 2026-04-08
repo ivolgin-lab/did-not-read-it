@@ -8,6 +8,9 @@ app:
     type: ClusterIP
     port: 3000
   sessionSecret: ""  # auto-generated if empty
+  metrics:
+    enabled: "true"       # set to "false" to disable metrics reporting
+    intervalMs: "300000"  # 5 minutes
   ingress:
     enabled: false
     className: ""

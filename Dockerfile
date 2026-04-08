@@ -17,9 +17,12 @@ FROM base AS build
 RUN npm run build
 
 # Production app target
-FROM base AS app
-COPY --from=build /app/.next ./.next
-CMD ["npm", "start"]
+FROM node:20-alpine AS app
+WORKDIR /app
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
+COPY --from=build /app/node_modules ./node_modules
+CMD ["node", "server.js"]
 
 # Migrations target
 FROM base AS migrations

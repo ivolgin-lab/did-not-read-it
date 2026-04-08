@@ -12,7 +12,7 @@ export async function getSession(): Promise<IronSession<SessionData>> {
     password: process.env.SESSION_SECRET || 'dev-secret-change-in-production-min-32-chars!!',
     cookieName: 'didnotreadit-session',
     cookieOptions: {
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.COOKIE_SECURE === 'true',
     },
   });
 }
