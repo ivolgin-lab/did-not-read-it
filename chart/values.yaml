@@ -43,6 +43,17 @@ postgresql:
       runAsGroup: 70
     podSecurityContext:
       fsGroup: 70
+    initContainers:
+      - name: fix-permissions
+        image: "{{ include \"postgresql.v1.image\" . }}"
+        command: ["/bin/sh", "-c"]
+        args:
+          - chown -R 70:70 /bitnami/postgresql && chmod 0750 /bitnami/postgresql/data || true
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+          - name: data
+            mountPath: /bitnami/postgresql
     persistence:
       size: 10Gi
 
