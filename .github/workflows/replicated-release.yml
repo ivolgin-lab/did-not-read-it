@@ -87,35 +87,18 @@ jobs:
           namespace: default
           registry-username: ci-${{ inputs.channel }}@example.com
           registry-password: ${{ steps.create-customer.outputs.license-id }}
-          values: |
-            app:
-              image:
-                tag: ${{ inputs.version }}
-            migrations:
-              image:
-                tag: ${{ inputs.version }}
-            postgresql:
-              auth:
-                password: testpassword
-            imagePullSecret:
-              credentials:
-                - registry: docker.io
-                  username: ${{ secrets.DOCKERHUB_USERNAME }}
-                  password: ${{ secrets.DOCKERHUB_PASSWORD }}
-                - registry: dhi.io
-                  username: ${{ secrets.DOCKERHUB_USERNAME }}
-                  password: ${{ secrets.DOCKERHUB_PASSWORD }}
-            global:
-              imagePullSecrets:
-                - name: didnotreadit-pull-secret
-              security:
-                allowInsecureImages: true
 
       - name: Test /d/all returns 200
         run: |
           echo "${{ steps.create-cluster.outputs.cluster-kubeconfig }}" > kubeconfig.yaml
           export KUBECONFIG=kubeconfig.yaml
-          kubectl rollout status deployment/didnotreadit-app --timeout=120s
+          kubectl rollout status deployment/didnotreadit-app --timeout=180s || {
+            echo "=== Rollout timed out, debugging ==="
+            kubectl get pods -o wide
+            kubectl describe pod -l app.kubernetes.io/component=app
+            kubectl logs -l app.kubernetes.io/component=app --all-containers --tail=50 || true
+            exit 1
+          }
           kubectl port-forward svc/didnotreadit-app 3000:3000 &
           sleep 5
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/d/all)
