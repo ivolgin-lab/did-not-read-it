@@ -20,6 +20,7 @@ export default async function Header() {
           </nav>
         </div>
         <div className="header-right">
+          <Link href="/support" className="link-button">support</Link>
           {searchEnabled && (
             <form action="/search" method="get" className="search-form">
               <input type="text" name="q" placeholder="search" className="search-input" />

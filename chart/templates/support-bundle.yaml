@@ -1,0 +1,130 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "didnotreadit.fullname" . }}-support-bundle
+  labels:
+    {{- include "didnotreadit.labels" . | nindent 4 }}
+    troubleshoot.sh/kind: support-bundle
+stringData:
+  support-bundle-spec: |
+    apiVersion: troubleshoot.sh/v1beta2
+    kind: SupportBundle
+    metadata:
+      name: {{ include "didnotreadit.fullname" . }}
+    spec:
+      collectors:
+        # 3.2 — Log collection for all app components
+        - logs:
+            name: app-logs
+            selector:
+              - app.kubernetes.io/name={{ include "didnotreadit.name" . }}
+              - app.kubernetes.io/component=app
+            namespace: {{ .Release.Namespace }}
+            limits:
+              maxLines: 5000
+        - logs:
+            name: postgresql-logs
+            selector:
+              - app.kubernetes.io/name=postgresql
+              - app.kubernetes.io/instance={{ .Release.Name }}
+            namespace: {{ .Release.Namespace }}
+            limits:
+              maxLines: 5000
+        - logs:
+            name: sdk-logs
+            selector:
+              - app.kubernetes.io/name={{ .Values.replicated.nameOverride | default "replicated" }}
+            namespace: {{ .Release.Namespace }}
+            limits:
+              maxLines: 2000
+        # 3.3 — Health endpoint check
+        - http:
+            collectorName: app-health
+            get:
+              url: http://{{ include "didnotreadit.fullname" . }}-app:3000/api/health
+        # Cluster info (automatic, but explicit for clarity)
+        - clusterInfo: {}
+        - clusterResources: {}
+      analyzers:
+        # 3.3 — Health endpoint analyzer
+        - textAnalyze:
+            checkName: Application Health Endpoint
+            fileName: app-health.json
+            regex: '"status"\s*:\s*"ok"'
+            outcomes:
+              - pass:
+                  when: "true"
+                  message: Application health endpoint returned ok status
+              - fail:
+                  when: "false"
+                  message: Application health endpoint did not return ok status. Check database connectivity and app logs.
+        # 3.4 — Status analyzers for all workload types
+        - deploymentStatus:
+            name: {{ include "didnotreadit.fullname" . }}-app
+            namespace: {{ .Release.Namespace }}
+            outcomes:
+              - pass:
+                  when: "= 1"
+                  message: App deployment is running
+              - fail:
+                  message: "App deployment is not healthy. This means the web application is down and users cannot access it. Check app-logs for errors."
+        - statefulsetStatus:
+            name: {{ include "didnotreadit.fullname" . }}-postgresql
+            namespace: {{ .Release.Namespace }}
+            outcomes:
+              - pass:
+                  when: "= 1"
+                  message: PostgreSQL StatefulSet is running
+              - fail:
+                  message: "PostgreSQL StatefulSet is not healthy. The database is unavailable, which means all read and write operations will fail. Check postgresql-logs and PVC permissions."
+        - deploymentStatus:
+            name: {{ .Values.replicated.nameOverride | default "replicated" }}
+            namespace: {{ .Release.Namespace }}
+            outcomes:
+              - pass:
+                  when: "= 1"
+                  message: Replicated SDK deployment is running
+              - warn:
+                  message: "Replicated SDK is not running. License checks, metrics, and update notifications will not work. This does not affect core app functionality."
+        # 3.5 — App-specific failure pattern detection
+        - textAnalyze:
+            checkName: Database Connection Errors
+            fileName: app-logs/*.log
+            regex: "FATAL.*data directory.*has (wrong ownership|invalid permissions)"
+            outcomes:
+              - fail:
+                  when: "true"
+                  message: "PostgreSQL data directory has wrong ownership or permissions. This typically happens after changing the container UID/GID. Delete the PVC and restart the StatefulSet, or ensure the fix-permissions init container is enabled."
+              - pass:
+                  when: "false"
+                  message: No PostgreSQL data directory permission errors found
+        - textAnalyze:
+            checkName: License Expiry Errors
+            fileName: app-logs/*.log
+            regex: "LICENSE_EXPIRED"
+            outcomes:
+              - warn:
+                  when: "true"
+                  message: "Application detected an expired license. The app is in read-only mode. Contact your vendor to renew the license."
+              - pass:
+                  when: "false"
+                  message: No license expiry errors detected
+        # 3.6 — Storage class and node readiness
+        - storageClass:
+            checkName: Default Storage Class
+            outcomes:
+              - pass:
+                  when: "1"
+                  message: A default storage class is configured
+              - fail:
+                  when: "0"
+                  message: "No default storage class found. PostgreSQL requires a storage class to provision its PVC. Create a default StorageClass or specify one in postgresql.primary.persistence.storageClass."
+        - nodeResources:
+            checkName: Node Readiness
+            outcomes:
+              - pass:
+                  when: "ready == true"
+                  message: All nodes are ready
+              - fail:
+                  when: "ready == false"
+                  message: "One or more nodes are not Ready. This may cause pod scheduling failures. Run 'kubectl describe node' to investigate."

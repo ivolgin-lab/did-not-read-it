@@ -17,6 +17,7 @@ spec:
         {{- include "didnotreadit.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: app
     spec:
+      serviceAccountName: {{ include "didnotreadit.fullname" . }}-app
       {{- if .Values.imagePullSecret.credentials }}
       imagePullSecrets:
         - name: {{ include "didnotreadit.pullSecretName" . }}
@@ -97,7 +98,11 @@ spec:
             {{- if .Values.replicated.enabled }}
             - name: REPLICATED_SDK_URL
               value: http://{{ .Values.replicated.nameOverride | default "replicated" }}:3000
+            - name: REPLICATED_SDK_SERVICE
+              value: {{ .Values.replicated.nameOverride | default "replicated" }}
             {{- end }}
+            - name: HELM_RELEASE_NAME
+              value: {{ .Release.Name }}
           resources:
             requests:
               cpu: 100m

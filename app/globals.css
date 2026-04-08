@@ -676,3 +676,46 @@ a:hover {
   background: #369;
   color: #fff;
 }
+
+/* Support page */
+.support-description {
+  color: #555;
+  line-height: 1.5;
+  margin-bottom: 15px;
+}
+.support-actions {
+  margin-top: 10px;
+}
+.bundle-status {
+  margin-top: 12px;
+  padding: 8px 10px;
+  font-size: 12px;
+  border: 1px solid #ddd;
+  background: #fafafa;
+}
+.bundle-success {
+  border-color: #4a4;
+  background: #f0fff0;
+  color: #262;
+}
+.bundle-error {
+  border-color: #c44;
+  background: #fff0f0;
+  color: #822;
+}
+.bundle-job-name {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #888;
+}
+.bundle-logs {
+  margin-top: 8px;
+  padding: 8px;
+  background: #333;
+  color: #eee;
+  font-size: 11px;
+  overflow-x: auto;
+  max-height: 300px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
