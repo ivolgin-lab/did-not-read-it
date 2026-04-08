@@ -1,6 +1,8 @@
 import './globals.css';
 import Header from '@/components/Header';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'did-not-read-it',
   description: 'The front page of things nobody read',
