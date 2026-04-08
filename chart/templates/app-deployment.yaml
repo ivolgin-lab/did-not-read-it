@@ -20,6 +20,9 @@ spec:
       {{- if .Values.imagePullSecret.credentials }}
       imagePullSecrets:
         - name: {{ include "didnotreadit.pullSecretName" . }}
+      {{- else if .Values.replicated.enabled }}
+      imagePullSecrets:
+        - name: enterprise-pull-secret
       {{- end }}
       initContainers:
         - name: migrations
@@ -33,23 +36,26 @@ spec:
               cpu: 300m
               memory: 256Mi
           env:
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "didnotreadit.secretName" . }}
-                  key: database-url
             {{- if .Values.postgresql.enabled }}
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "didnotreadit.secretName" . }}
-                  key: postgres-password
+                  name: {{ .Release.Name }}-postgresql
+                  key: password
+            - name: DATABASE_URL
+              value: "postgresql://{{ .Values.postgresql.auth.username }}:$(POSTGRES_PASSWORD)@{{ .Release.Name }}-postgresql:5432/{{ .Values.postgresql.auth.database }}"
             - name: POSTGRES_USER
               value: {{ .Values.postgresql.auth.username | quote }}
             - name: POSTGRES_DB
               value: {{ .Values.postgresql.auth.database | quote }}
             - name: DB_HOST
               value: {{ .Release.Name }}-postgresql
+            {{- else }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "didnotreadit.secretName" . }}
+                  key: database-url
             {{- end }}
       containers:
         - name: app
@@ -62,11 +68,21 @@ spec:
           env:
             - name: HOSTNAME
               value: "0.0.0.0"
+            {{- if .Values.postgresql.enabled }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-postgresql
+                  key: password
+            - name: DATABASE_URL
+              value: "postgresql://{{ .Values.postgresql.auth.username }}:$(POSTGRES_PASSWORD)@{{ .Release.Name }}-postgresql:5432/{{ .Values.postgresql.auth.database }}"
+            {{- else }}
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   name: {{ include "didnotreadit.secretName" . }}
                   key: database-url
+            {{- end }}
             - name: SESSION_SECRET
               valueFrom:
                 secretKeyRef:
