@@ -3,10 +3,14 @@
 import { db } from '@/db';
 import { comment, commentVote, post } from '@/db/schema';
 import { getUser } from '@/lib/auth';
+import { checkLicenseValid } from '@/lib/entitlements';
 import { eq, and, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 export async function createComment(_prevState: unknown, formData: FormData) {
+  if (!(await checkLicenseValid())) {
+    return { error: 'License expired. Commenting is disabled.' };
+  }
   const currentUser = await getUser();
   if (!currentUser) {
     return { error: 'You must be logged in to comment.' };
@@ -55,6 +59,7 @@ export async function createComment(_prevState: unknown, formData: FormData) {
 }
 
 export async function voteOnComment(commentId: string, value: number) {
+  if (!(await checkLicenseValid())) return { error: 'License expired.' };
   const currentUser = await getUser();
   if (!currentUser) return { error: 'Must be logged in to vote.' };
 

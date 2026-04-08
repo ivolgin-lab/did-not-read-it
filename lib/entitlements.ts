@@ -59,3 +59,16 @@ export function isLicenseExpired(license: LicenseInfo): boolean {
   if (!expiresAt) return false;
   return new Date(expiresAt) < new Date();
 }
+
+export async function checkLicenseValid(): Promise<boolean> {
+  const license = await getLicenseInfo();
+  if (!license) return true; // allow if SDK unavailable
+  return !isLicenseExpired(license);
+}
+
+export async function requireValidLicense(): Promise<void> {
+  const valid = await checkLicenseValid();
+  if (!valid) {
+    throw new Error('LICENSE_EXPIRED');
+  }
+}

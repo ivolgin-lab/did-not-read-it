@@ -3,9 +3,13 @@
 import { db } from '@/db';
 import { didnotreadit } from '@/db/schema';
 import { getUser } from '@/lib/auth';
+import { checkLicenseValid } from '@/lib/entitlements';
 import { redirect } from 'next/navigation';
 
 export async function createDidnotreadit(_prevState: unknown, formData: FormData) {
+  if (!(await checkLicenseValid())) {
+    return { error: 'License expired. Creating didnotreadits is disabled.' };
+  }
   const currentUser = await getUser();
   if (!currentUser) {
     return { error: 'You must be logged in to create a didnotreadit.' };
