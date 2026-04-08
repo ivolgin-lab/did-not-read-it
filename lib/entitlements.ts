@@ -5,11 +5,15 @@ export async function isFeatureEnabled(fieldName: string): Promise<boolean> {
     const res = await fetch(`${SDK_URL}/api/v1/license/fields/${fieldName}`, {
       cache: 'no-store',
     });
-    if (!res.ok) return true; // default to enabled if SDK unavailable
+    if (!res.ok) {
+      console.error(`[entitlements] SDK returned ${res.status} for field ${fieldName}`);
+      return true;
+    }
     const data = await res.json();
     return data.value === true || data.value === 'true';
-  } catch {
-    return true; // default to enabled if SDK unavailable
+  } catch (err) {
+    console.error(`[entitlements] failed to check field ${fieldName}:`, err);
+    return true;
   }
 }
 
