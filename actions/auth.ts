@@ -3,11 +3,15 @@
 import { db } from '@/db';
 import { user } from '@/db/schema';
 import { getSession } from '@/lib/session';
+import { checkLicenseValid } from '@/lib/entitlements';
 import bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 
 export async function register(_prevState: unknown, formData: FormData) {
+  if (!(await checkLicenseValid())) {
+    return { error: 'License expired. Registration is disabled.' };
+  }
   const username = (formData.get('username') as string)?.trim();
   const password = formData.get('password') as string;
 

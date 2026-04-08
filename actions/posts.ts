@@ -3,10 +3,14 @@
 import { db } from '@/db';
 import { post, postVote } from '@/db/schema';
 import { getUser } from '@/lib/auth';
+import { checkLicenseValid } from '@/lib/entitlements';
 import { eq, and, sql } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 
 export async function createPost(_prevState: unknown, formData: FormData) {
+  if (!(await checkLicenseValid())) {
+    return { error: 'License expired. Posting is disabled.' };
+  }
   const currentUser = await getUser();
   if (!currentUser) {
     return { error: 'You must be logged in to submit a post.' };
@@ -59,6 +63,7 @@ export async function createPost(_prevState: unknown, formData: FormData) {
 }
 
 export async function voteOnPost(postId: string, value: number) {
+  if (!(await checkLicenseValid())) return { error: 'License expired.' };
   const currentUser = await getUser();
   if (!currentUser) return { error: 'Must be logged in to vote.' };
 
