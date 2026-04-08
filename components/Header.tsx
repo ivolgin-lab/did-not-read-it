@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { getUser } from '@/lib/auth';
 import { logout } from '@/actions/auth';
+import { isSearchEnabled } from '@/lib/entitlements';
 
 export default async function Header() {
-  const user = await getUser();
+  const [user, searchEnabled] = await Promise.all([getUser(), isSearchEnabled()]);
 
   return (
     <header className="header">
@@ -19,9 +20,11 @@ export default async function Header() {
           </nav>
         </div>
         <div className="header-right">
-          <form action="/search" method="get" className="search-form">
-            <input type="text" name="q" placeholder="search" className="search-input" />
-          </form>
+          {searchEnabled && (
+            <form action="/search" method="get" className="search-form">
+              <input type="text" name="q" placeholder="search" className="search-input" />
+            </form>
+          )}
           {user ? (
             <span className="user-menu">
               <Link href={`/user/${user.username}`}>{user.username}</Link>
