@@ -3,12 +3,18 @@ import { post, user, didnotreadit, postVote } from '@/db/schema';
 import { eq, sql, and, inArray } from 'drizzle-orm';
 import { getUser } from '@/lib/auth';
 import PostList from '@/components/PostList';
+import { isSearchEnabled } from '@/lib/entitlements';
+import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
 const POSTS_PER_PAGE = 25;
 
 export default async function SearchPage({ searchParams }: { searchParams: { q?: string; page?: string } }) {
+  if (!(await isSearchEnabled())) {
+    notFound();
+  }
+
   const query = searchParams.q?.trim() || '';
   const page = Math.max(1, parseInt(searchParams.page || '1', 10) || 1);
 
