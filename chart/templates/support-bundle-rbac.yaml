@@ -1,27 +1,35 @@
-# ServiceAccount for the support-bundle Job (needs cluster-wide read access)
+# ServiceAccount used by the app pod. The support-bundle binary runs in-process
+# inside the app container, so the app SA itself needs cluster-wide read access
+# to satisfy the troubleshoot collectors (logs, cluster resources, nodes, etc.).
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ include "didnotreadit.fullname" . }}-support-bundle
+  name: {{ include "didnotreadit.fullname" . }}-app
   labels:
     {{- include "didnotreadit.labels" . | nindent 4 }}
 ---
+# Bind the built-in `view` ClusterRole — covers most read-only collectors.
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: ClusterRoleBinding
 metadata:
-  name: {{ include "didnotreadit.fullname" . }}-support-bundle
+  name: {{ include "didnotreadit.fullname" . }}-app-view
   labels:
     {{- include "didnotreadit.labels" . | nindent 4 }}
-aggregationRule:
-  clusterRoleSelectors:
-    - matchLabels:
-        rbac.authorization.k8s.io/aggregate-to-view: "true"
-rules: []  # rules are automatically filled by the controller manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "didnotreadit.fullname" . }}-app
+    namespace: {{ .Release.Namespace }}
 ---
+# Extras the `view` role doesn't grant: pod logs, secret discovery (for
+# locating in-cluster SupportBundle specs), nodes, storage classes.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "didnotreadit.fullname" . }}-support-bundle-extras
+  name: {{ include "didnotreadit.fullname" . }}-app-extras
   labels:
     {{- include "didnotreadit.labels" . | nindent 4 }}
 rules:
@@ -41,68 +49,13 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "didnotreadit.fullname" . }}-support-bundle
+  name: {{ include "didnotreadit.fullname" . }}-app-extras
   labels:
     {{- include "didnotreadit.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ include "didnotreadit.fullname" . }}-support-bundle-extras
-subjects:
-  - kind: ServiceAccount
-    name: {{ include "didnotreadit.fullname" . }}-support-bundle
-    namespace: {{ .Release.Namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: {{ include "didnotreadit.fullname" . }}-support-bundle-view
-  labels:
-    {{- include "didnotreadit.labels" . | nindent 4 }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: view
-subjects:
-  - kind: ServiceAccount
-    name: {{ include "didnotreadit.fullname" . }}-support-bundle
-    namespace: {{ .Release.Namespace }}
----
-# ServiceAccount for the app (needs to create/read/delete Jobs and read Pods)
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: {{ include "didnotreadit.fullname" . }}-app
-  labels:
-    {{- include "didnotreadit.labels" . | nindent 4 }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: {{ include "didnotreadit.fullname" . }}-app
-  labels:
-    {{- include "didnotreadit.labels" . | nindent 4 }}
-rules:
-  - apiGroups: ["batch"]
-    resources: ["jobs"]
-    verbs: ["create", "get", "list", "delete"]
-  - apiGroups: [""]
-    resources: ["pods"]
-    verbs: ["get", "list"]
-  - apiGroups: [""]
-    resources: ["pods/log"]
-    verbs: ["get"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: {{ include "didnotreadit.fullname" . }}-app
-  labels:
-    {{- include "didnotreadit.labels" . | nindent 4 }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: {{ include "didnotreadit.fullname" . }}-app
+  name: {{ include "didnotreadit.fullname" . }}-app-extras
 subjects:
   - kind: ServiceAccount
     name: {{ include "didnotreadit.fullname" . }}-app

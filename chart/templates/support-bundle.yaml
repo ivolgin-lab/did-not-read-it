@@ -12,6 +12,10 @@ stringData:
     metadata:
       name: {{ include "didnotreadit.fullname" . }}
     spec:
+      afterCollection:
+        - uploadResultsTo:
+            uri: http://{{ .Values.replicated.nameOverride | default "replicated" }}:3000/api/v1/supportbundle
+            method: POST
       collectors:
         # 3.2 — Log collection for all app components
         - logs:
