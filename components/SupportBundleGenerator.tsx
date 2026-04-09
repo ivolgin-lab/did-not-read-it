@@ -1,27 +1,47 @@
 'use client';
 
-import { useState } from 'react';
-import { generateSupportBundle } from '@/actions/support';
-
-type State =
-  | { status: 'idle' }
-  | { status: 'running' }
-  | { status: 'succeeded'; output: string }
-  | { status: 'failed'; output: string };
+import { useEffect, useRef, useState } from 'react';
+import { startBundle, fetchBundleStatus } from '@/actions/support';
+import type { BundleStatus } from '@/lib/supportBundle';
 
 export default function SupportBundleGenerator() {
-  const [state, setState] = useState<State>({ status: 'idle' });
+  const [status, setStatus] = useState<BundleStatus>({ state: 'idle' });
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  async function handleGenerate() {
-    setState({ status: 'running' });
-    const result = await generateSupportBundle();
-    setState({
-      status: result.success ? 'succeeded' : 'failed',
-      output: result.output,
-    });
+  function stopPolling() {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
   }
 
-  const isRunning = state.status === 'running';
+  function startPolling() {
+    if (pollRef.current) return;
+    pollRef.current = setInterval(async () => {
+      const next = await fetchBundleStatus();
+      setStatus(next);
+      if (next.state !== 'running') stopPolling();
+    }, 2000);
+  }
+
+  // On mount: pick up the current server-side state. If a run is already in
+  // flight (e.g. user navigated away and came back), resume polling.
+  useEffect(() => {
+    fetchBundleStatus().then((s) => {
+      setStatus(s);
+      if (s.state === 'running') startPolling();
+    });
+    return stopPolling;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleGenerate() {
+    const result = await startBundle();
+    setStatus(result.status);
+    if (result.status.state === 'running') startPolling();
+  }
+
+  const isRunning = status.state === 'running';
 
   return (
     <div>
@@ -29,26 +49,28 @@ export default function SupportBundleGenerator() {
         {isRunning ? 'Generating...' : 'Generate Support Bundle'}
       </button>
 
-      {state.status === 'running' && (
-        <div className="bundle-status">Collecting support bundle... This may take a minute.</div>
+      {status.state === 'running' && (
+        <div className="bundle-status">
+          Collecting support bundle... This may take a minute.
+        </div>
       )}
 
-      {state.status === 'succeeded' && (
+      {status.state === 'succeeded' && (
         <div className="bundle-status bundle-success">
           Support bundle generated and uploaded to the Vendor Portal.
           <details>
             <summary>Output</summary>
-            <pre className="bundle-logs">{state.output}</pre>
+            <pre className="bundle-logs">{status.output}</pre>
           </details>
         </div>
       )}
 
-      {state.status === 'failed' && (
+      {status.state === 'failed' && (
         <div className="bundle-status bundle-error">
           Support bundle generation failed.
           <details>
             <summary>Output</summary>
-            <pre className="bundle-logs">{state.output}</pre>
+            <pre className="bundle-logs">{status.output}</pre>
           </details>
         </div>
       )}

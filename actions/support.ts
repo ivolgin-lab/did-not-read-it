@@ -1,14 +1,11 @@
 'use server';
 
-import { generateSupportBundle as runBundle, type BundleResult } from '@/lib/supportBundle';
+import { getStatus, startSupportBundle, type BundleStatus } from '@/lib/supportBundle';
 
-export async function generateSupportBundle(): Promise<BundleResult> {
-  try {
-    return await runBundle();
-  } catch (err) {
-    return {
-      success: false,
-      output: err instanceof Error ? err.message : 'Failed to generate support bundle',
-    };
-  }
+export async function startBundle(): Promise<{ started: boolean; status: BundleStatus }> {
+  return startSupportBundle();
+}
+
+export async function fetchBundleStatus(): Promise<BundleStatus> {
+  return getStatus();
 }
