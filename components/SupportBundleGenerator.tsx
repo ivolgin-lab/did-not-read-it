@@ -1,95 +1,77 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { generateSupportBundle, checkBundleStatus } from '@/actions/support';
-
-type State =
-  | { status: 'idle' }
-  | { status: 'creating' }
-  | { status: 'running'; jobName: string }
-  | { status: 'succeeded'; logs: string }
-  | { status: 'failed'; message: string; logs?: string }
-  | { status: 'error'; message: string };
+import { useEffect, useRef, useState } from 'react';
+import { startBundle, fetchBundleStatus } from '@/actions/support';
+import type { BundleStatus } from '@/lib/supportBundle';
 
 export default function SupportBundleGenerator() {
-  const [state, setState] = useState<State>({ status: 'idle' });
+  const [status, setStatus] = useState<BundleStatus>({ state: 'idle' });
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  function stopPolling() {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }
+
+  function startPolling() {
+    if (pollRef.current) return;
+    pollRef.current = setInterval(async () => {
+      const next = await fetchBundleStatus();
+      setStatus(next);
+      if (next.state !== 'running') stopPolling();
+    }, 2000);
+  }
+
+  // On mount: pick up the current server-side state. If a run is already in
+  // flight (e.g. user navigated away and came back), resume polling.
   useEffect(() => {
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
+    fetchBundleStatus().then((s) => {
+      setStatus(s);
+      if (s.state === 'running') startPolling();
+    });
+    return stopPolling;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleGenerate() {
-    setState({ status: 'creating' });
-
-    const result = await generateSupportBundle();
-    if ('error' in result) {
-      setState({ status: 'error', message: result.error });
-      return;
-    }
-
-    setState({ status: 'running', jobName: result.jobName });
-
-    pollRef.current = setInterval(async () => {
-      const status = await checkBundleStatus(result.jobName);
-      if (status.phase === 'succeeded') {
-        if (pollRef.current) clearInterval(pollRef.current);
-        setState({ status: 'succeeded', logs: status.logs || '' });
-      } else if (status.phase === 'failed') {
-        if (pollRef.current) clearInterval(pollRef.current);
-        setState({ status: 'failed', message: status.message || 'Job failed', logs: status.logs });
-      }
-    }, 3000);
+    const result = await startBundle();
+    setStatus(result.status);
+    if (result.status.state === 'running') startPolling();
   }
 
-  const isGenerating = state.status === 'creating' || state.status === 'running';
+  const isRunning = status.state === 'running';
 
   return (
     <div>
-      <button className="btn" onClick={handleGenerate} disabled={isGenerating}>
-        {isGenerating ? 'Generating...' : 'Generate Support Bundle'}
+      <button className="btn" onClick={handleGenerate} disabled={isRunning}>
+        {isRunning ? 'Generating...' : 'Generate Support Bundle'}
       </button>
 
-      {state.status === 'creating' && (
-        <div className="bundle-status">Creating support bundle job...</div>
-      )}
-
-      {state.status === 'running' && (
+      {status.state === 'running' && (
         <div className="bundle-status">
-          Collecting support bundle data... This may take a minute.
-          <div className="bundle-job-name">Job: {state.jobName}</div>
+          Collecting support bundle... This may take a minute.
         </div>
       )}
 
-      {state.status === 'succeeded' && (
+      {status.state === 'succeeded' && (
         <div className="bundle-status bundle-success">
           Support bundle generated and uploaded to the Vendor Portal.
-          {state.logs && (
-            <details>
-              <summary>Job output</summary>
-              <pre className="bundle-logs">{state.logs}</pre>
-            </details>
-          )}
+          <details>
+            <summary>Output</summary>
+            <pre className="bundle-logs">{status.output}</pre>
+          </details>
         </div>
       )}
 
-      {state.status === 'failed' && (
+      {status.state === 'failed' && (
         <div className="bundle-status bundle-error">
-          Support bundle generation failed: {state.message}
-          {state.logs && (
-            <details>
-              <summary>Job output</summary>
-              <pre className="bundle-logs">{state.logs}</pre>
-            </details>
-          )}
-        </div>
-      )}
-
-      {state.status === 'error' && (
-        <div className="bundle-status bundle-error">
-          Error: {state.message}
+          Support bundle generation failed.
+          <details>
+            <summary>Output</summary>
+            <pre className="bundle-logs">{status.output}</pre>
+          </details>
         </div>
       )}
     </div>

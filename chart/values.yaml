@@ -19,6 +19,8 @@ app:
     tls:
       enabled: false
       secretName: ""
+      crt: ""   # base64-encoded TLS certificate (fullchain)
+      key: ""   # base64-encoded TLS private key
 
 migrations:
   image:
