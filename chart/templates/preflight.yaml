@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "didnotreadit.fullname" . }}-preflight
+  labels:
+    {{- include "didnotreadit.labels" . | nindent 4 }}
+    troubleshoot.sh/kind: preflight
+stringData:
+  preflight.yaml: |
+    apiVersion: troubleshoot.sh/v1beta2
+    kind: Preflight
+    metadata:
+      name: {{ include "didnotreadit.fullname" . }}
+    spec:
+      collectors:
+        {{- if not .Values.postgresql.enabled }}
+        - postgres:
+            collectorName: external-postgres
+            uri: {{ .Values.externalDatabase.url | quote }}
+        {{- end }}
+        - clusterInfo: {}
+        - clusterResources: {}
+      analyzers:
+        # (1) External database connectivity — only when externalDatabase is in use.
+        {{- if not .Values.postgresql.enabled }}
+        - postgres:
+            checkName: External PostgreSQL connectivity
+            collectorName: external-postgres
+            outcomes:
+              - fail:
+                  when: "connected == false"
+                  message: "Cannot connect to the external PostgreSQL specified in externalDatabase.url. Verify the host is reachable from the cluster network, the credentials are correct, and the target database exists."
+              - pass:
+                  when: "connected == true"
+                  message: "Successfully connected to the external PostgreSQL."
+        {{- end }}
+        # (3) Cluster CPU capacity — must have at least 4 cores total.
+        - nodeResources:
+            checkName: Cluster CPU capacity
+            outcomes:
+              - fail:
+                  when: "sum(cpuCapacity) < 4"
+                  message: "Cluster has fewer than 4 CPU cores in total. didnotreadit requires at least 4 cores across all nodes to run the app, the embedded PostgreSQL, and the Replicated SDK with headroom for traffic. Add more nodes or use larger nodes."
+              - pass:
+                  message: "Cluster has at least 4 CPU cores."
+        # (4) Kubernetes version — must be 1.35.2 or later.
+        - clusterVersion:
+            checkName: Kubernetes version
+            outcomes:
+              - fail:
+                  when: "< 1.35.2"
+                  message: "didnotreadit requires Kubernetes 1.35.2 or later. Upgrade your cluster control plane and worker nodes before installing."
+              - pass:
+                  when: ">= 1.35.2"
+                  message: "Kubernetes version is supported."
+        # (5) Distribution — kind clusters are not supported.
+        - distribution:
+            checkName: Supported Kubernetes distribution
+            outcomes:
+              - fail:
+                  when: "== kind"
+                  message: "didnotreadit does not support kind clusters. kind is intended for local container testing and does not provide the persistent storage guarantees the embedded PostgreSQL needs. Use a production-grade distribution such as k3s, EKS, GKE, or AKS."
+              - pass:
+                  message: "Cluster distribution is supported."
