@@ -15,8 +15,16 @@ jobs:
       - name: Set version
         id: version
         run: |
+          # SemVer 2.0.0 forbids leading zeros in numeric segments and in
+          # numeric prerelease identifiers. The HHMMSS time and an all-digit
+          # short SHA can both trip that, so:
+          #   - strip the leading zero from HHMMSS by forcing base-10 arithmetic
+          #   - prefix the SHA with `g` (git-describe convention) so the
+          #     prerelease identifier is always alphanumeric
           SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          VERSION="0.$(date -u +%Y%m%d.%H%M%S)-${SHA}"
+          DATE=$(date -u +%Y%m%d)
+          TIME=$((10#$(date -u +%H%M%S)))
+          VERSION="0.${DATE}.${TIME}-g${SHA}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
