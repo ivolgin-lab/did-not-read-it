@@ -15,6 +15,18 @@ spec:
   # `postgres_password` defaults to repl{{ RandomString 32 }} which is
   # generated once and persisted by KOTS, so the password survives upgrades.
   values:
+    app:
+      ingress:
+        enabled: 'repl{{ ConfigOptionEquals "ingress_enabled" "1" }}'
+        hosts:
+          - 'repl{{ ConfigOption "ingress_hostname" }}'
+        tls:
+          enabled: 'repl{{ ConfigOptionEquals "ingress_tls_enabled" "1" }}'
+          crt: 'repl{{ ConfigOption "ingress_tls_cert" | Base64Encode }}'
+          key: 'repl{{ ConfigOption "ingress_tls_key" | Base64Encode }}'
     postgresql:
       auth:
         password: 'repl{{ ConfigOption "postgres_password" }}'
+    global:
+      imagePullSecrets:
+        - name: 'repl{{ ImagePullSecretName }}'

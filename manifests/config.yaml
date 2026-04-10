@@ -4,6 +4,40 @@ metadata:
   name: didnotreadit-config
 spec:
   groups:
+    - name: ingress
+      title: Ingress
+      description: Configure how the application is exposed externally.
+      items:
+        - name: ingress_enabled
+          title: Enable Ingress
+          type: bool
+          default: "0"
+          help_text: Enable an Ingress resource to expose the application via a hostname. When disabled, the app is only reachable via port-forward or a LoadBalancer service.
+        - name: ingress_hostname
+          title: Hostname
+          type: text
+          required: true
+          when: 'repl{{ ConfigOptionEquals "ingress_enabled" "1" }}'
+          help_text: The fully qualified domain name to reach the application (e.g. app.example.com). DNS must point to the cluster's ingress controller.
+        - name: ingress_tls_enabled
+          title: Enable TLS
+          type: bool
+          default: "0"
+          when: 'repl{{ ConfigOptionEquals "ingress_enabled" "1" }}'
+          help_text: Serve the application over HTTPS. Requires a TLS certificate and private key.
+        - name: ingress_tls_cert
+          title: TLS Certificate (PEM)
+          type: textarea
+          when: 'repl{{ and (ConfigOptionEquals "ingress_enabled" "1") (ConfigOptionEquals "ingress_tls_enabled" "1") }}'
+          required: true
+          help_text: The full-chain TLS certificate in PEM format. Paste the contents of your certificate file (e.g. fullchain.pem).
+        - name: ingress_tls_key
+          title: TLS Private Key (PEM)
+          type: textarea
+          when: 'repl{{ and (ConfigOptionEquals "ingress_enabled" "1") (ConfigOptionEquals "ingress_tls_enabled" "1") }}'
+          required: true
+          help_text: The TLS private key in PEM format. Paste the contents of your private key file (e.g. privkey.pem).
+
     - name: database
       title: Database
       description: Settings for the embedded PostgreSQL database that ships with did not read it.
