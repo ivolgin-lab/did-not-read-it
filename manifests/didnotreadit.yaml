@@ -26,15 +26,6 @@ spec:
           key: 'repl{{ ConfigOption "ingress_tls_key" | Base64Encode }}'
     ingress-nginx:
       enabled: repl{{ ConfigOptionEquals "ingress_enabled" "1" }}
-      controller:
-        image:
-          repository: 'repl{{ LocalImageName "registry.k8s.io/ingress-nginx/controller" }}'
-          digest: ""
-        admissionWebhooks:
-          patch:
-            image:
-              repository: 'repl{{ LocalImageName "registry.k8s.io/ingress-nginx/kube-webhook-certgen" }}'
-              digest: ""
     postgresql:
       auth:
         password: 'repl{{ ConfigOption "postgres_password" }}'
