@@ -6,28 +6,3 @@ spec:
   version: 3.0.0-alpha-31+k8s-1.34
   domains:
     proxyRegistryDomain: proxy.ivolg.in
-  extensions:
-    helmCharts:
-      - chart:
-          name: ingress-nginx
-          chartVersion: "4.15.1"
-        releaseName: ingress-nginx
-        namespace: ingress-nginx
-        weight: 10
-        values: |
-          controller:
-            ingressClassResource:
-              default: true
-            service:
-              type: NodePort
-              nodePorts:
-                http: "80"
-                https: "443"
-            image:
-              registry: proxy.ivolg.in/proxy/didnotreadit
-              digest: ""
-            admissionWebhooks:
-              patch:
-                image:
-                  registry: proxy.ivolg.in/proxy/didnotreadit
-                  digest: ""

@@ -1,6 +1,5 @@
 appSlug: didnotreadit
 charts:
   - path: ./chart
-  - path: ./vendor-charts/ingress-nginx-4.15.1.tgz
 manifests:
   - ./manifests/*.yaml
