@@ -52,7 +52,6 @@ jobs:
           target: ${{ matrix.target }}
           push: true
           tags: |
-            quay.io/divolgin/didnotreadit-${{ matrix.target }}:${{ steps.tag.outputs.sha }}
             quay.io/divolgin/didnotreadit-${{ matrix.target }}:v0.0.0-${{ steps.tag.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
