@@ -40,11 +40,54 @@ spec:
 
     - name: database
       title: Database
-      description: Settings for the embedded PostgreSQL database that ships with did not read it.
+      description: Configure the PostgreSQL database used by did not read it.
       items:
+        - name: postgres_type
+          title: Database Type
+          type: select_one
+          default: embedded
+          items:
+            - name: embedded
+              title: Embedded (included PostgreSQL)
+            - name: external
+              title: External (bring your own PostgreSQL)
+          help_text: Choose whether to use the bundled PostgreSQL or connect to an existing external database.
         - name: postgres_password
           title: PostgreSQL Password
           type: password
+          when: 'repl{{ ConfigOptionEquals "postgres_type" "embedded" }}'
           help_text: Password for the embedded PostgreSQL database. Auto-generated on first install and preserved across upgrades — only set this manually if you need to use a specific password.
           value: ""
           default: 'repl{{ RandomString 32 }}'
+        - name: external_postgres_host
+          title: Host
+          type: text
+          required: true
+          when: 'repl{{ ConfigOptionEquals "postgres_type" "external" }}'
+          help_text: Hostname or IP address of the external PostgreSQL server (e.g. db.example.com).
+        - name: external_postgres_port
+          title: Port
+          type: text
+          default: "5432"
+          required: true
+          when: 'repl{{ ConfigOptionEquals "postgres_type" "external" }}'
+          help_text: Port number of the external PostgreSQL server. Default is 5432.
+        - name: external_postgres_user
+          title: Username
+          type: text
+          required: true
+          when: 'repl{{ ConfigOptionEquals "postgres_type" "external" }}'
+          help_text: Username for connecting to the external PostgreSQL database.
+        - name: external_postgres_password
+          title: Password
+          type: password
+          required: true
+          when: 'repl{{ ConfigOptionEquals "postgres_type" "external" }}'
+          help_text: Password for the external PostgreSQL user.
+        - name: external_postgres_database
+          title: Database Name
+          type: text
+          default: didnotreadit
+          required: true
+          when: 'repl{{ ConfigOptionEquals "postgres_type" "external" }}'
+          help_text: Name of the database on the external PostgreSQL server.
