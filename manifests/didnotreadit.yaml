@@ -27,3 +27,6 @@ spec:
     postgresql:
       auth:
         password: 'repl{{ ConfigOption "postgres_password" }}'
+    global:
+      imagePullSecrets:
+        - name: 'repl{{ ImagePullSecretName }}'
