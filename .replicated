@@ -1,3 +1,5 @@
 appSlug: didnotreadit
 charts:
   - path: ./chart
+manifests:
+  - ./manifests/*.yaml
