@@ -1,0 +1,16 @@
+apiVersion: kots.io/v1beta1
+kind: Config
+metadata:
+  name: didnotreadit-config
+spec:
+  groups:
+    - name: database
+      title: Database
+      description: Settings for the embedded PostgreSQL database that ships with did not read it.
+      items:
+        - name: postgres_password
+          title: PostgreSQL Password
+          type: password
+          help_text: Password for the embedded PostgreSQL database. Auto-generated on first install and preserved across upgrades — only set this manually if you need to use a specific password.
+          value: ""
+          default: 'repl{{ RandomString 32 }}'

@@ -36,6 +36,12 @@ jobs:
           helm dependency build chart/
           helm package chart/ --version ${{ inputs.version }} --app-version ${{ inputs.version }}
 
+      - name: Stamp release version into KOTS manifests
+        run: |
+          # The HelmChart manifest pins the chart version, so the release
+          # workflow has to substitute the actual version before upload.
+          sed -i "s/__VERSION__/${{ inputs.version }}/g" manifests/didnotreadit.yaml
+
       - name: Create Replicated release
         id: create-release
         uses: replicatedhq/replicated-actions/create-release@v1
@@ -43,6 +49,7 @@ jobs:
           app-slug: ${{ secrets.REPLICATED_APP }}
           api-token: ${{ secrets.REPLICATED_API_TOKEN }}
           chart: didnotreadit-${{ inputs.version }}.tgz
+          yaml-dir: ./manifests
           promote-channel: ${{ inputs.channel }}
           version: ${{ inputs.version }}
 

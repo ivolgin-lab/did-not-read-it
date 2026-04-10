@@ -1,0 +1,17 @@
+apiVersion: kots.io/v1beta1
+kind: Application
+metadata:
+  name: didnotreadit
+spec:
+  title: did not read it
+  icon: https://github.com/ivolgin-lab.png
+  applicationUrl: http://didnotreadit-app
+  statusInformers:
+    - deployment/didnotreadit-app
+    - statefulset/didnotreadit-postgresql
+    - deployment/didnotreadit-sdk
+  ports:
+    - serviceName: didnotreadit-app
+      servicePort: 3000
+      localPort: 8888
+      applicationUrl: http://didnotreadit-app
