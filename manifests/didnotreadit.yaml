@@ -27,8 +27,11 @@ spec:
     ingress-nginx:
       enabled: repl{{ ConfigOptionEquals "ingress_enabled" "1" }}
     postgresql:
+      enabled: repl{{ ConfigOptionEquals "postgres_type" "embedded" }}
       auth:
         password: 'repl{{ ConfigOption "postgres_password" }}'
+    externalDatabase:
+      url: 'repl{{ if ConfigOptionEquals "postgres_type" "external" }}postgresql://repl{{ ConfigOption "external_postgres_user" }}:repl{{ ConfigOption "external_postgres_password" }}@repl{{ ConfigOption "external_postgres_host" }}:repl{{ ConfigOption "external_postgres_port" }}/repl{{ ConfigOption "external_postgres_database" }}repl{{ end }}'
     global:
       imagePullSecrets:
         - name: 'repl{{ ImagePullSecretName }}'
