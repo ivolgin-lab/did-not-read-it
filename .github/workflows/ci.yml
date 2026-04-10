@@ -38,11 +38,12 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Docker Hub
+      - name: Log in to Quay.io
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
 
       - name: Build and push ${{ matrix.target }} image
         uses: docker/build-push-action@v6
@@ -51,8 +52,8 @@ jobs:
           target: ${{ matrix.target }}
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/didnotreadit-${{ matrix.target }}:${{ steps.tag.outputs.sha }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/didnotreadit-${{ matrix.target }}:v0.0.0-${{ steps.tag.outputs.sha }}
+            quay.io/divolgin/didnotreadit-${{ matrix.target }}:${{ steps.tag.outputs.sha }}
+            quay.io/divolgin/didnotreadit-${{ matrix.target }}:v0.0.0-${{ steps.tag.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -100,16 +101,16 @@ jobs:
       - name: Deploy with Helm
         run: |
           helm install didnotreadit chart/ \
-            --set app.image.repository=${{ secrets.DOCKERHUB_USERNAME }}/didnotreadit-app \
+            --set app.image.repository=quay.io/divolgin/didnotreadit-app \
             --set app.image.tag=v0.0.0-${{ steps.tag.outputs.sha }} \
-            --set migrations.image.repository=${{ secrets.DOCKERHUB_USERNAME }}/didnotreadit-migrations \
+            --set migrations.image.repository=quay.io/divolgin/didnotreadit-migrations \
             --set migrations.image.tag=v0.0.0-${{ steps.tag.outputs.sha }} \
             --set postgresql.image.registry=dhi.io \
             --set postgresql.image.repository=postgres \
             --set postgresql.auth.password=testpassword \
-            --set imagePullSecret.credentials[0].registry=docker.io \
-            --set imagePullSecret.credentials[0].username=${{ secrets.DOCKERHUB_USERNAME }} \
-            --set imagePullSecret.credentials[0].password=${{ secrets.DOCKERHUB_PASSWORD }} \
+            --set imagePullSecret.credentials[0].registry=quay.io \
+            --set imagePullSecret.credentials[0].username=${{ secrets.QUAY_USERNAME }} \
+            --set imagePullSecret.credentials[0].password=${{ secrets.QUAY_PASSWORD }} \
             --set imagePullSecret.credentials[1].registry=dhi.io \
             --set imagePullSecret.credentials[1].username=${{ secrets.DOCKERHUB_USERNAME }} \
             --set imagePullSecret.credentials[1].password=${{ secrets.DOCKERHUB_PASSWORD }} \

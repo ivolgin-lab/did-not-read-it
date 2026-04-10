@@ -26,11 +26,12 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Docker Hub
+      - name: Log in to Quay.io
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
 
       - name: Build and push ${{ matrix.target }} image
         uses: docker/build-push-action@v6
@@ -39,7 +40,7 @@ jobs:
           target: ${{ matrix.target }}
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/didnotreadit-${{ matrix.target }}:${{ needs.version.outputs.version }}
+            quay.io/divolgin/didnotreadit-${{ matrix.target }}:${{ needs.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
