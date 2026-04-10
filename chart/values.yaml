@@ -1,7 +1,7 @@
 app:
   replicaCount: 1
   image:
-    repository: proxy.ivolg.in/proxy/didnotreadit/index.docker.io/ivolginlab/didnotreadit-app
+    repository: proxy.ivolg.in/proxy/didnotreadit/quay.io/divolgin/didnotreadit-app
     tag: ""  # defaults to Chart.appVersion
     pullPolicy: IfNotPresent
   service:
@@ -24,7 +24,7 @@ app:
 
 migrations:
   image:
-    repository: proxy.ivolg.in/proxy/didnotreadit/index.docker.io/ivolginlab/didnotreadit-migrations
+    repository: proxy.ivolg.in/proxy/didnotreadit/quay.io/divolgin/didnotreadit-migrations
     tag: ""  # defaults to Chart.appVersion
     pullPolicy: IfNotPresent
 
