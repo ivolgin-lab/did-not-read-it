@@ -8,4 +8,4 @@ spec:
   descriptor:
     links:
       - description: Open did not read it
-        url: http://didnotreadit-app
+        url: 'repl{{ if ConfigOptionEquals "ingress_enabled" "1" }}repl{{ if ConfigOptionEquals "ingress_tls_enabled" "1" }}https://repl{{ else }}http://repl{{ end }}repl{{ ConfigOption "ingress_hostname" }}repl{{ end }}'
