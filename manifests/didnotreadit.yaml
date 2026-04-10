@@ -24,6 +24,8 @@ spec:
           enabled: repl{{ ConfigOptionEquals "ingress_tls_enabled" "1" }}
           crt: 'repl{{ ConfigOption "ingress_tls_cert" | Base64Encode }}'
           key: 'repl{{ ConfigOption "ingress_tls_key" | Base64Encode }}'
+    ingress-nginx:
+      enabled: repl{{ ConfigOptionEquals "ingress_enabled" "1" }}
     postgresql:
       auth:
         password: 'repl{{ ConfigOption "postgres_password" }}'

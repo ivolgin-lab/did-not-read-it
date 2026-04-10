@@ -81,6 +81,19 @@ global:
   imagePullSecrets:
     - name: enterprise-pull-secret  # created by replicated SDK subchart
 
+# Ingress controller subchart — disabled by default (Helm CLI users manage their own)
+# Enabled via KOTS config screen when ingress is selected for EC installs
+ingress-nginx:
+  enabled: false
+  controller:
+    ingressClassResource:
+      default: true
+    service:
+      type: NodePort
+      nodePorts:
+        http: "80"
+        https: "443"
+
 # External database — used when postgresql.enabled is false
 externalDatabase:
   url: ""  # e.g. postgresql://user:pass@host:5432/dbname

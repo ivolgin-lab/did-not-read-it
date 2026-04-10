@@ -102,6 +102,13 @@
         }
       }
     },
+    "ingress-nginx": {
+      "type": "object",
+      "description": "Ingress controller subchart; enabled for EC installs when ingress is selected",
+      "properties": {
+        "enabled": { "type": "boolean", "description": "Deploy the bundled ingress-nginx controller" }
+      }
+    },
     "imagePullSecret": {
       "type": "object",
       "description": "Creates a pull secret when credentials are provided",
