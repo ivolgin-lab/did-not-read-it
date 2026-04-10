@@ -28,12 +28,12 @@ spec:
       enabled: repl{{ ConfigOptionEquals "ingress_enabled" "1" }}
       controller:
         image:
-          repository: 'repl{{ ReplicatedImageName "registry.k8s.io/ingress-nginx/controller" }}'
+          repository: 'repl{{ LocalImageName "registry.k8s.io/ingress-nginx/controller" }}'
           digest: ""
         admissionWebhooks:
           patch:
             image:
-              repository: 'repl{{ ReplicatedImageName "registry.k8s.io/ingress-nginx/kube-webhook-certgen" }}'
+              repository: 'repl{{ LocalImageName "registry.k8s.io/ingress-nginx/kube-webhook-certgen" }}'
               digest: ""
     postgresql:
       auth:
