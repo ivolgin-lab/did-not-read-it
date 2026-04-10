@@ -43,15 +43,15 @@ stringData:
                   message: "Cluster has fewer than 4 CPU cores in total. didnotreadit requires at least 4 cores across all nodes to run the app, the embedded PostgreSQL, and the Replicated SDK with headroom for traffic. Add more nodes or use larger nodes."
               - pass:
                   message: "Cluster has at least 4 CPU cores."
-        # (4) Kubernetes version — must be 1.35.2 or later.
+        # (4) Kubernetes version — must be 1.34.0 or later.
         - clusterVersion:
             checkName: Kubernetes version
             outcomes:
               - fail:
-                  when: "< 1.35.2"
-                  message: "didnotreadit requires Kubernetes 1.35.2 or later. Upgrade your cluster control plane and worker nodes before installing."
+                  when: "< 1.34.0"
+                  message: "didnotreadit requires Kubernetes 1.34.0 or later. Upgrade your cluster control plane and worker nodes before installing."
               - pass:
-                  when: ">= 1.35.2"
+                  when: ">= 1.34.0"
                   message: "Kubernetes version is supported."
         # (5) Distribution — kind clusters are not supported.
         - distribution:

@@ -1,0 +1,20 @@
+apiVersion: kots.io/v1beta2
+kind: HelmChart
+metadata:
+  name: didnotreadit
+spec:
+  # The chart name and version must match the .tgz packaged from chart/.
+  # __VERSION__ is replaced by the release workflow with the actual release
+  # version before the manifests are uploaded.
+  chart:
+    name: didnotreadit
+    chartVersion: __VERSION__
+  releaseName: didnotreadit
+
+  # Values pulled from the Config screen / license. The Config item
+  # `postgres_password` defaults to repl{{ RandomString 32 }} which is
+  # generated once and persisted by KOTS, so the password survives upgrades.
+  values:
+    postgresql:
+      auth:
+        password: 'repl{{ ConfigOption "postgres_password" }}'

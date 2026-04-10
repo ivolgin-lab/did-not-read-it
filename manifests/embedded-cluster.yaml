@@ -1,0 +1,9 @@
+apiVersion: embeddedcluster.replicated.com/v1beta1
+kind: Config
+metadata:
+  name: didnotreadit
+spec:
+  # Pinned to the current latest stable Embedded Cluster release. The
+  # `+k8s-1.34` build ships Kubernetes 1.34, which matches the floor in
+  # chart/templates/preflight.yaml.
+  version: 2.15.0+k8s-1.34
