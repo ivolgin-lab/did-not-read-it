@@ -31,27 +31,40 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v4
 
-      - name: Package Helm chart
+      - name: Install Replicated CLI
         run: |
-          helm dependency build chart/
-          helm package chart/ --version ${{ inputs.version }} --app-version ${{ inputs.version }}
+          curl -sL https://github.com/replicatedhq/replicated/releases/download/v0.124.5/replicated_0.124.5_linux_amd64.tar.gz \
+            | sudo tar xz -C /usr/local/bin replicated
 
-      - name: Stamp release version into KOTS manifests
+      - name: Stamp release version into chart and manifests
         run: |
-          # The HelmChart manifest pins the chart version, so the release
-          # workflow has to substitute the actual version before upload.
+          # The .replicated config tells `replicated release create` to
+          # auto-package chart/ and bundle the manifests/*.yaml files into
+          # a single release. The chart version is read from Chart.yaml, and
+          # the HelmChart manifest pins that version, so we substitute the
+          # release version into both before invoking the CLI.
+          sed -i "s/^version: .*/version: ${{ inputs.version }}/" chart/Chart.yaml
+          sed -i "s/^appVersion: .*/appVersion: \"${{ inputs.version }}\"/" chart/Chart.yaml
           sed -i "s/__VERSION__/${{ inputs.version }}/g" manifests/didnotreadit.yaml
+          helm dependency build chart/
 
       - name: Create Replicated release
         id: create-release
-        uses: replicatedhq/replicated-actions/create-release@v1
-        with:
-          app-slug: ${{ secrets.REPLICATED_APP }}
-          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
-          chart: didnotreadit-${{ inputs.version }}.tgz
-          yaml-dir: ./manifests
-          promote-channel: ${{ inputs.channel }}
-          version: ${{ inputs.version }}
+        env:
+          REPLICATED_API_TOKEN: ${{ secrets.REPLICATED_API_TOKEN }}
+          REPLICATED_APP: ${{ secrets.REPLICATED_APP }}
+        run: |
+          OUTPUT=$(replicated release create \
+            --version "${{ inputs.version }}" \
+            --promote "${{ inputs.channel }}" \
+            --ensure-channel \
+            --output json)
+          echo "$OUTPUT"
+          SEQUENCE=$(echo "$OUTPUT" | jq -r '.[0].sequence // .sequence // empty')
+          CHANNEL_SLUG=$(replicated channel ls --output json \
+            | jq -r --arg name "${{ inputs.channel }}" '.[] | select(.name == $name) | .channelSlug')
+          echo "release-sequence=$SEQUENCE" >> "$GITHUB_OUTPUT"
+          echo "channel-slug=$CHANNEL_SLUG" >> "$GITHUB_OUTPUT"
 
   test:
     runs-on: ubuntu-latest
