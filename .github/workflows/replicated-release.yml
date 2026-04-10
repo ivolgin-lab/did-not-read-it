@@ -60,7 +60,7 @@ jobs:
             --ensure-channel \
             --output json)
           echo "$OUTPUT"
-          SEQUENCE=$(echo "$OUTPUT" | jq -r '.[0].sequence // .sequence // empty')
+          SEQUENCE=$(echo "$OUTPUT" | jq -r '.sequence')
           CHANNEL_SLUG=$(replicated channel ls --output json \
             | jq -r --arg name "${{ inputs.channel }}" '.[] | select(.name == $name) | .channelSlug')
           echo "release-sequence=$SEQUENCE" >> "$GITHUB_OUTPUT"
