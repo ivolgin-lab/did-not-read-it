@@ -17,11 +17,11 @@ spec:
   values:
     app:
       ingress:
-        enabled: 'repl{{ ConfigOptionEquals "ingress_enabled" "1" }}'
+        enabled: repl{{ ConfigOptionEquals "ingress_enabled" "1" }}
         hosts:
           - 'repl{{ ConfigOption "ingress_hostname" }}'
         tls:
-          enabled: 'repl{{ ConfigOptionEquals "ingress_tls_enabled" "1" }}'
+          enabled: repl{{ ConfigOptionEquals "ingress_tls_enabled" "1" }}
           crt: 'repl{{ ConfigOption "ingress_tls_cert" | Base64Encode }}'
           key: 'repl{{ ConfigOption "ingress_tls_key" | Base64Encode }}'
     postgresql:
