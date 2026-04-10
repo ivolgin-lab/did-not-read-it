@@ -5,7 +5,7 @@ metadata:
 spec:
   title: did not read it
   icon: https://github.com/ivolgin-lab.png
-  applicationUrl: http://didnotreadit-app
+  applicationUrl: 'repl{{ if ConfigOptionEquals "ingress_enabled" "1" }}repl{{ if ConfigOptionEquals "ingress_tls_enabled" "1" }}https://repl{{ else }}http://repl{{ end }}repl{{ ConfigOption "ingress_hostname" }}repl{{ end }}'
   statusInformers:
     - deployment/didnotreadit-app
     - statefulset/didnotreadit-postgresql
@@ -14,4 +14,4 @@ spec:
     - serviceName: didnotreadit-app
       servicePort: 3000
       localPort: 8888
-      applicationUrl: http://didnotreadit-app
+      applicationUrl: 'repl{{ if ConfigOptionEquals "ingress_enabled" "1" }}repl{{ if ConfigOptionEquals "ingress_tls_enabled" "1" }}https://repl{{ else }}http://repl{{ end }}repl{{ ConfigOption "ingress_hostname" }}repl{{ end }}'
