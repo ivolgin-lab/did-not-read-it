@@ -7,6 +7,7 @@ app:
   service:
     type: ClusterIP
     port: 3000
+    nodePort: null  # set to a fixed port (e.g. 30000) when type is NodePort
   sessionSecret: ""  # auto-generated if empty
   metrics:
     enabled: "true"       # set to "false" to disable metrics reporting
