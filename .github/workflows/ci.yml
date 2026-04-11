@@ -68,6 +68,11 @@ jobs:
           cosign sign --key env://COSIGN_PRIVATE_KEY --yes \
             quay.io/divolgin/didnotreadit-${{ matrix.target }}@${{ steps.build-push.outputs.digest }}
 
+      - name: Verify image signature
+        run: |
+          cosign verify --key cosign.pub \
+            quay.io/divolgin/didnotreadit-${{ matrix.target }}@${{ steps.build-push.outputs.digest }}
+
   test:
     runs-on: ubuntu-latest
     needs: docker
