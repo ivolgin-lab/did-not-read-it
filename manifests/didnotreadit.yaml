@@ -35,7 +35,7 @@ spec:
       enabled: repl{{ ConfigOptionEquals "postgres_type" "embedded" }}
       image:
         registry: 'repl{{ LocalRegistryHost }}'
-        repository: 'repl{{ LocalRegistryNamespace }}/postgresql'
+        repository: 'repl{{ LocalRegistryNamespace }}/postgres'
       auth:
         password: 'repl{{ ConfigOption "postgres_password" }}'
     externalDatabase:
@@ -43,6 +43,7 @@ spec:
     replicated:
       image:
         registry: 'repl{{ LocalRegistryHost }}'
+        repository: 'repl{{ LocalRegistryNamespace }}/replicated-sdk-image'
     global:
       imagePullSecrets:
         - name: 'repl{{ ImagePullSecretName }}'
