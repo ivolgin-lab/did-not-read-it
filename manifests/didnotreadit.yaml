@@ -19,7 +19,7 @@ spec:
       image:
         repository: 'repl{{ LocalImageName "quay.io/divolgin/didnotreadit-app" }}'
       service:
-        type: 'repl{{ if ConfigOptionEquals "ingress_enabled" "1" }}ClusterIP repl{{ else }}NodePort repl{{ end }}'
+        type: repl{{ if ConfigOptionEquals "ingress_enabled" "1" }}ClusterIP repl{{ else }}NodePort repl{{ end }}
         nodePort: 30000
       ingress:
         enabled: repl{{ ConfigOptionEquals "ingress_enabled" "1" }}
