@@ -81,6 +81,11 @@ jobs:
           cosign sign --key env://COSIGN_PRIVATE_KEY --yes \
             quay.io/divolgin/didnotreadit-${{ matrix.target }}@${{ steps.build-push.outputs.digest }}
 
+      - name: Verify image signature
+        run: |
+          cosign verify --key cosign.pub \
+            quay.io/divolgin/didnotreadit-${{ matrix.target }}@${{ steps.build-push.outputs.digest }}
+
   replicated:
     needs: [build, docker]
     uses: ./.github/workflows/replicated-release.yml
