@@ -33,7 +33,11 @@ jobs:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
 
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
       - name: Build and push ${{ matrix.target }} image
+        id: build-push
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -43,6 +47,14 @@ jobs:
             quay.io/divolgin/didnotreadit-${{ matrix.target }}:${{ needs.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Sign image with cosign
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ""
+        run: |
+          cosign sign --key env://COSIGN_PRIVATE_KEY --yes \
+            quay.io/divolgin/didnotreadit-${{ matrix.target }}@${{ steps.build-push.outputs.digest }}
 
   replicated:
     needs: [version, docker]
