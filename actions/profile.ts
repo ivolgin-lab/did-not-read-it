@@ -3,17 +3,23 @@
 import { db } from '@/db';
 import { user } from '@/db/schema';
 import { getUser } from '@/lib/auth';
-import { generateVerificationToken, sendVerificationEmail } from '@/lib/email';
+import {
+  EMAIL_RE,
+  VERIFICATION_TTL_MS,
+  generateVerificationToken,
+  isSmtpEnabled,
+  sendVerificationEmail,
+} from '@/lib/email';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 
 export async function updateEmail(_prevState: unknown, formData: FormData) {
   const currentUser = await getUser();
   if (!currentUser) {
     return { error: 'You must be logged in.' };
+  }
+  if (!isSmtpEnabled()) {
+    return { error: 'Email is not configured on this server.' };
   }
 
   const raw = (formData.get('email') as string)?.trim() || '';
@@ -30,13 +36,6 @@ export async function updateEmail(_prevState: unknown, formData: FormData) {
 
   if (email === existing.email) {
     return { success: 'No change.' };
-  }
-
-  if (email) {
-    const [conflict] = await db.select().from(user).where(eq(user.email, email)).limit(1);
-    if (conflict && conflict.id !== currentUser.userId) {
-      return { error: 'Email is already in use.' };
-    }
   }
 
   if (!email) {
@@ -68,6 +67,9 @@ export async function resendVerificationEmail() {
   const currentUser = await getUser();
   if (!currentUser) {
     return { error: 'You must be logged in.' };
+  }
+  if (!isSmtpEnabled()) {
+    return { error: 'Email is not configured on this server.' };
   }
   const [found] = await db.select().from(user).where(eq(user.id, currentUser.userId)).limit(1);
   if (!found || !found.email) {

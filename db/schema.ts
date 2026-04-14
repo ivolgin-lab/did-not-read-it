@@ -29,7 +29,7 @@ export const user = pgTable('user', {
   id: varchar('id', { length: 24 }).primaryKey().$defaultFn(randomId),
   username: varchar('username', { length: 20 }).notNull().unique(),
   passwordHash: text('password_hash').notNull(),
-  email: varchar('email', { length: 254 }).unique(),
+  email: varchar('email', { length: 254 }),
   emailVerified: timestamp('email_verified_at'),
   emailVerificationToken: varchar('email_verification_token', { length: 64 }),
   emailVerificationExpiresAt: timestamp('email_verification_expires_at'),

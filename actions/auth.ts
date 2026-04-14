@@ -4,13 +4,16 @@ import { db } from '@/db';
 import { user } from '@/db/schema';
 import { getSession } from '@/lib/session';
 import { checkLicenseValid } from '@/lib/entitlements';
-import { generateVerificationToken, sendVerificationEmail } from '@/lib/email';
+import {
+  EMAIL_RE,
+  VERIFICATION_TTL_MS,
+  generateVerificationToken,
+  isSmtpEnabled,
+  sendVerificationEmail,
+} from '@/lib/email';
 import bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 
 export async function register(_prevState: unknown, formData: FormData) {
   if (!(await checkLicenseValid())) {
@@ -19,7 +22,7 @@ export async function register(_prevState: unknown, formData: FormData) {
   const username = (formData.get('username') as string)?.trim();
   const password = formData.get('password') as string;
   const passwordConfirm = formData.get('passwordConfirm') as string;
-  const emailRaw = (formData.get('email') as string)?.trim() || '';
+  const emailRaw = isSmtpEnabled() ? ((formData.get('email') as string)?.trim() || '') : '';
   const email = emailRaw ? emailRaw.toLowerCase() : null;
 
   if (!username || username.length < 3 || username.length > 20) {
@@ -45,13 +48,6 @@ export async function register(_prevState: unknown, formData: FormData) {
   const existing = await db.select().from(user).where(eq(user.username, username)).limit(1);
   if (existing.length > 0) {
     return { error: 'Username is already taken.' };
-  }
-
-  if (email) {
-    const existingEmail = await db.select().from(user).where(eq(user.email, email)).limit(1);
-    if (existingEmail.length > 0) {
-      return { error: 'Email is already in use.' };
-    }
   }
 
   const passwordHash = await bcrypt.hash(password, 10);

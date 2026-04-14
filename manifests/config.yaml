@@ -131,8 +131,7 @@ spec:
           when: 'repl{{ ConfigOptionEquals "smtp_enabled" "1" }}'
           help_text: Sender address used on outgoing emails (e.g. noreply@example.com). The address must be permitted by your SMTP provider.
         - name: app_base_url
-          title: App Base URL
+          title: App Base URL (optional)
           type: text
-          required: true
           when: 'repl{{ ConfigOptionEquals "smtp_enabled" "1" }}'
-          help_text: Public base URL where the app is reachable, used in email verification links (e.g. https://didnotreadit.example.com). Must be reachable by recipients.
+          help_text: Public base URL where the app is reachable, used in email verification links (e.g. https://didnotreadit.example.com). Leave blank to use the URL from the incoming request — only set this if the browser-visible URL differs from what the app sees.

@@ -4,7 +4,7 @@ app:
     repository: proxy.ivolg.in/proxy/didnotreadit/quay.io/divolgin/didnotreadit-app
     tag: ""  # defaults to Chart.appVersion
     pullPolicy: IfNotPresent
-  baseUrl: ""  # public URL of the app, used for email links (e.g. https://app.example.com)
+  baseUrl: ""  # public URL of the app for email links; leave empty to derive from the request host
   service:
     type: ClusterIP
     port: 3000

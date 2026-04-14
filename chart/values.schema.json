@@ -32,7 +32,7 @@
         },
         "baseUrl": {
           "type": "string",
-          "description": "Public base URL where the app is reachable; used in email verification links"
+          "description": "Public base URL for email links; optional — derived from the request host when empty"
         },
         "ingress": {
           "type": "object",
