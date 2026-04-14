@@ -30,6 +30,10 @@
           "type": "string",
           "description": "Session cookie secret; auto-generated if empty"
         },
+        "baseUrl": {
+          "type": "string",
+          "description": "Public base URL where the app is reachable; used in email verification links"
+        },
         "ingress": {
           "type": "object",
           "properties": {
@@ -137,6 +141,18 @@
           "type": "string",
           "description": "PostgreSQL connection URL, e.g. postgresql://user:pass@host:5432/dbname"
         }
+      }
+    },
+    "smtp": {
+      "type": "object",
+      "description": "Optional SMTP configuration for sending verification and notification emails",
+      "properties": {
+        "enabled": { "type": "boolean", "description": "Enable outgoing email. When false, the app runs without email." },
+        "host": { "type": "string", "description": "SMTP server hostname" },
+        "port": { "type": "string", "description": "SMTP server port (e.g. 587 for STARTTLS, 465 for TLS)" },
+        "username": { "type": "string", "description": "SMTP username; empty for unauthenticated servers" },
+        "password": { "type": "string", "description": "SMTP password or API key" },
+        "from": { "type": "string", "description": "Sender address used on outgoing emails" }
       }
     }
   }

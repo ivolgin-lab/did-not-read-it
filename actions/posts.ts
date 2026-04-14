@@ -1,10 +1,11 @@
 'use server';
 
 import { db } from '@/db';
-import { post, postVote } from '@/db/schema';
+import { post, postVote, didnotreadit, user } from '@/db/schema';
 import { getUser } from '@/lib/auth';
 import { checkLicenseValid } from '@/lib/entitlements';
-import { eq, and, sql } from 'drizzle-orm';
+import { sendNewPostNotification } from '@/lib/email';
+import { eq, and, sql, isNotNull } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 
 export async function createPost(_prevState: unknown, formData: FormData) {
@@ -59,7 +60,45 @@ export async function createPost(_prevState: unknown, formData: FormData) {
     await tx.update(post).set({ score: 1 }).where(eq(post.id, newPost.id));
   });
 
+  try {
+    await notifySubredditCreator({
+      postId: newPost.id,
+      postTitle: newPost.title,
+      didnotreaditId,
+      posterId: currentUser.userId,
+      posterUsername: currentUser.username,
+    });
+  } catch (err) {
+    console.error('[notify] new post notification failed:', err);
+  }
+
   redirect(`/post/${newPost.id}`);
+}
+
+async function notifySubredditCreator(opts: {
+  postId: string;
+  postTitle: string;
+  didnotreaditId: string;
+  posterId: string;
+  posterUsername: string;
+}) {
+  const [sub] = await db.select().from(didnotreadit).where(eq(didnotreadit.id, opts.didnotreaditId)).limit(1);
+  if (!sub) return;
+  if (sub.creatorId === opts.posterId) return;
+
+  const [creator] = await db.select().from(user)
+    .where(and(eq(user.id, sub.creatorId), isNotNull(user.email), isNotNull(user.emailVerified)))
+    .limit(1);
+  if (!creator || !creator.email) return;
+
+  await sendNewPostNotification({
+    to: creator.email,
+    recipientUsername: creator.username,
+    posterUsername: opts.posterUsername,
+    subredditName: sub.name,
+    postId: opts.postId,
+    postTitle: opts.postTitle,
+  });
 }
 
 export async function voteOnPost(postId: string, value: number) {

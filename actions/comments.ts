@@ -1,10 +1,11 @@
 'use server';
 
 import { db } from '@/db';
-import { comment, commentVote, post } from '@/db/schema';
+import { comment, commentVote, post, user } from '@/db/schema';
 import { getUser } from '@/lib/auth';
 import { checkLicenseValid } from '@/lib/entitlements';
-import { eq, and, sql } from 'drizzle-orm';
+import { sendReplyNotification } from '@/lib/email';
+import { eq, and, sql, isNotNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 export async function createComment(_prevState: unknown, formData: FormData) {
@@ -28,6 +29,7 @@ export async function createComment(_prevState: unknown, formData: FormData) {
     return { error: 'Comment is too long (max 10,000 characters).' };
   }
 
+  let newCommentId: string | null = null;
   await db.transaction(async (tx) => {
     const locked = await tx.execute(sql`SELECT id FROM post WHERE id = ${postId} FOR UPDATE`);
     if (locked.rows.length === 0) throw new Error('Post not found');
@@ -38,6 +40,7 @@ export async function createComment(_prevState: unknown, formData: FormData) {
       postId,
       parentId,
     }).returning();
+    newCommentId = newComment.id;
 
     // Increment comment count on post
     await tx.update(post).set({
@@ -54,8 +57,61 @@ export async function createComment(_prevState: unknown, formData: FormData) {
     await tx.update(comment).set({ score: 1, upvotes: 1 }).where(eq(comment.id, newComment.id));
   });
 
+  try {
+    await notifyOnReply({
+      postId,
+      parentCommentId: parentId,
+      replierId: currentUser.userId,
+      replierUsername: currentUser.username,
+      snippet: body.slice(0, 300),
+    });
+  } catch (err) {
+    console.error('[notify] reply notification failed:', err);
+  }
+
   revalidatePath(`/post/${postId}`);
   return { success: true };
+}
+
+async function notifyOnReply(opts: {
+  postId: string;
+  parentCommentId: string | null;
+  replierId: string;
+  replierUsername: string;
+  snippet: string;
+}) {
+  const [parentPost] = await db.select().from(post).where(eq(post.id, opts.postId)).limit(1);
+  if (!parentPost) return;
+
+  let recipientId: string;
+  let kind: 'post' | 'comment';
+
+  if (opts.parentCommentId) {
+    const [parentComment] = await db.select().from(comment).where(eq(comment.id, opts.parentCommentId)).limit(1);
+    if (!parentComment) return;
+    recipientId = parentComment.authorId;
+    kind = 'comment';
+  } else {
+    recipientId = parentPost.authorId;
+    kind = 'post';
+  }
+
+  if (recipientId === opts.replierId) return;
+
+  const [recipient] = await db.select().from(user)
+    .where(and(eq(user.id, recipientId), isNotNull(user.email), isNotNull(user.emailVerified)))
+    .limit(1);
+  if (!recipient || !recipient.email) return;
+
+  await sendReplyNotification({
+    to: recipient.email,
+    recipientUsername: recipient.username,
+    replierUsername: opts.replierUsername,
+    kind,
+    postId: opts.postId,
+    postTitle: parentPost.title,
+    snippet: opts.snippet,
+  });
 }
 
 export async function voteOnComment(commentId: string, value: number) {

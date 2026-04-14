@@ -4,6 +4,7 @@ app:
     repository: proxy.ivolg.in/proxy/didnotreadit/quay.io/divolgin/didnotreadit-app
     tag: ""  # defaults to Chart.appVersion
     pullPolicy: IfNotPresent
+  baseUrl: ""  # public URL of the app, used for email links (e.g. https://app.example.com)
   service:
     type: ClusterIP
     port: 3000
@@ -98,3 +99,13 @@ ingress-nginx:
 # External database — used when postgresql.enabled is false
 externalDatabase:
   url: ""  # e.g. postgresql://user:pass@host:5432/dbname
+
+# SMTP configuration for verification emails and reply notifications.
+# Disabled by default; the app runs without email when disabled.
+smtp:
+  enabled: false
+  host: ""
+  port: "587"
+  username: ""
+  password: ""
+  from: ""

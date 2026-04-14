@@ -103,6 +103,23 @@ spec:
             {{- end }}
             - name: HELM_RELEASE_NAME
               value: {{ .Release.Name }}
+            - name: APP_BASE_URL
+              value: {{ .Values.app.baseUrl | default "" | quote }}
+            {{- if .Values.smtp.enabled }}
+            - name: SMTP_HOST
+              value: {{ .Values.smtp.host | quote }}
+            - name: SMTP_PORT
+              value: {{ .Values.smtp.port | quote }}
+            - name: SMTP_USERNAME
+              value: {{ .Values.smtp.username | default "" | quote }}
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "didnotreadit.secretName" . }}
+                  key: smtp-password
+            - name: SMTP_FROM
+              value: {{ .Values.smtp.from | quote }}
+            {{- end }}
           resources:
             requests:
               cpu: 100m
