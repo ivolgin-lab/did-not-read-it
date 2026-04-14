@@ -33,11 +33,19 @@ spec:
             - sh
             - -c
             - |
+              set -u
               echo "waiting for postgres to accept connections..."
               until pg_isready -d "$DATABASE_URL" -t 3 >/dev/null 2>&1; do
                 sleep 2
               done
-              echo "postgres is ready"
+              echo "postgres is accepting connections, verifying credentials..."
+              if ! err=$(psql "$DATABASE_URL" -tAc "select 1" 2>&1); then
+                echo "ERROR: unable to connect to postgres with DATABASE_URL credentials" >&2
+                echo "psql: $err" >&2
+                echo "hint: check that postgresql.auth.password matches the password stored in the postgres data directory; see the bitnami postgresql upgrade notes if you recently rotated it" >&2
+                exit 1
+              fi
+              echo "postgres credentials verified"
           env:
             {{- if .Values.postgresql.enabled }}
             - name: POSTGRES_PASSWORD
