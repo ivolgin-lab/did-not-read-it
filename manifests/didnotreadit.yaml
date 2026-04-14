@@ -18,6 +18,7 @@ spec:
     app:
       image:
         repository: 'repl{{ LocalImageName "quay.io/divolgin/didnotreadit-app" }}'
+      baseUrl: 'repl{{ ConfigOption "app_base_url" }}'
       service:
         type: repl{{ if ConfigOptionEquals "ingress_enabled" "1" }}ClusterIP repl{{ else }}NodePort repl{{ end }}
         nodePort: 30000
@@ -47,6 +48,13 @@ spec:
       image:
         registry: 'repl{{ LocalRegistryHost }}'
         repository: 'repl{{ LocalRegistryNamespace }}/replicated-sdk-image'
+    smtp:
+      enabled: repl{{ ConfigOptionEquals "smtp_enabled" "1" }}
+      host: 'repl{{ ConfigOption "smtp_host" }}'
+      port: 'repl{{ ConfigOption "smtp_port" }}'
+      username: 'repl{{ ConfigOption "smtp_username" }}'
+      password: 'repl{{ ConfigOption "smtp_password" }}'
+      from: 'repl{{ ConfigOption "smtp_from" }}'
     global:
       imagePullSecrets:
         - name: 'repl{{ ImagePullSecretName }}'

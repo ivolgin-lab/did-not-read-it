@@ -29,6 +29,7 @@ export default async function Header() {
           {user ? (
             <span className="user-menu">
               <Link href={`/user/${user.username}`}>{user.username}</Link>
+              <Link href="/profile">profile</Link>
               <form action={logout} style={{ display: 'inline' }}>
                 <button type="submit" className="link-button">logout</button>
               </form>

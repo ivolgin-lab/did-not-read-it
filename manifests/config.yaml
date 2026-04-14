@@ -91,3 +91,47 @@ spec:
           required: true
           when: 'repl{{ ConfigOptionEquals "postgres_type" "external" }}'
           help_text: Name of the database on the external PostgreSQL server.
+
+    - name: smtp
+      title: Email (SMTP)
+      description: Optional SMTP configuration for sending verification emails and reply notifications. Leave disabled to run without email.
+      items:
+        - name: smtp_enabled
+          title: Enable Email Notifications
+          type: bool
+          default: "0"
+          help_text: When enabled, the app sends email verification links and notifications for replies and new posts. Users with verified email addresses will receive notifications.
+        - name: smtp_host
+          title: SMTP Host
+          type: text
+          required: true
+          when: 'repl{{ ConfigOptionEquals "smtp_enabled" "1" }}'
+          help_text: Hostname of your SMTP server (e.g. smtp.sendgrid.net, smtp.gmail.com).
+        - name: smtp_port
+          title: SMTP Port
+          type: text
+          default: "587"
+          required: true
+          when: 'repl{{ ConfigOptionEquals "smtp_enabled" "1" }}'
+          help_text: SMTP port. 587 for STARTTLS, 465 for implicit TLS, 25 for plain. Most providers use 587.
+        - name: smtp_username
+          title: SMTP Username
+          type: text
+          when: 'repl{{ ConfigOptionEquals "smtp_enabled" "1" }}'
+          help_text: Username for SMTP authentication. Leave empty for servers that don't require authentication.
+        - name: smtp_password
+          title: SMTP Password
+          type: password
+          when: 'repl{{ ConfigOptionEquals "smtp_enabled" "1" }}'
+          help_text: Password or API key for SMTP authentication.
+        - name: smtp_from
+          title: From Address
+          type: text
+          required: true
+          when: 'repl{{ ConfigOptionEquals "smtp_enabled" "1" }}'
+          help_text: Sender address used on outgoing emails (e.g. noreply@example.com). The address must be permitted by your SMTP provider.
+        - name: app_base_url
+          title: App Base URL (optional)
+          type: text
+          when: 'repl{{ ConfigOptionEquals "smtp_enabled" "1" }}'
+          help_text: Public base URL where the app is reachable, used in email verification links (e.g. https://didnotreadit.example.com). Leave blank to use the URL from the incoming request — only set this if the browser-visible URL differs from what the app sees.
