@@ -20,6 +20,10 @@ export default function RegisterPage() {
           password
           <input type="password" name="password" required minLength={6} />
         </label>
+        <label>
+          confirm password
+          <input type="password" name="passwordConfirm" required minLength={6} />
+        </label>
         {state?.error && <div className="form-error">{state.error}</div>}
         <SubmitButton label="register" pendingLabel="registering..." />
       </form>
