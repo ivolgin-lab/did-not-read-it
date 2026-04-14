@@ -14,6 +14,7 @@ export async function register(_prevState: unknown, formData: FormData) {
   }
   const username = (formData.get('username') as string)?.trim();
   const password = formData.get('password') as string;
+  const passwordConfirm = formData.get('passwordConfirm') as string;
 
   if (!username || username.length < 3 || username.length > 20) {
     return { error: 'Username must be between 3 and 20 characters.' };
@@ -25,6 +26,10 @@ export async function register(_prevState: unknown, formData: FormData) {
 
   if (!password || password.length < 6) {
     return { error: 'Password must be at least 6 characters.' };
+  }
+
+  if (password !== passwordConfirm) {
+    return { error: 'Passwords do not match.' };
   }
 
   const existing = await db.select().from(user).where(eq(user.username, username)).limit(1);
