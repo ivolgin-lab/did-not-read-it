@@ -39,4 +39,4 @@ CMD ["node", "server.js"]
 
 # Migrations target
 FROM base AS migrations
-CMD ["sh", "-c", "npx drizzle-kit push && PGPASSWORD=${POSTGRES_PASSWORD} psql -h ${DB_HOST} -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f db/search-trigger.sql"]
+CMD ["sh", "/app/scripts/migrate.sh"]
