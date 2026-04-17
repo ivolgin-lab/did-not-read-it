@@ -16,7 +16,7 @@ export default async function Header() {
           <nav className="header-nav">
             <Link href="/d/all">hot</Link>
             <Link href="/d/new">new</Link>
-            <Link href="/d/create">create</Link>
+            {user && <Link href="/d/create">create</Link>}
           </nav>
         </div>
         <div className="header-right">

@@ -1,6 +1,11 @@
-const SDK_URL = process.env.REPLICATED_SDK_URL || 'http://didnotreadit-sdk:3000';
+const SDK_URL = process.env.REPLICATED_SDK_URL || '';
+
+function isSdkConfigured(): boolean {
+  return SDK_URL !== '';
+}
 
 export async function isFeatureEnabled(fieldName: string): Promise<boolean> {
+  if (!isSdkConfigured()) return true;
   try {
     const res = await fetch(`${SDK_URL}/api/v1/license/fields/${fieldName}`, {
       cache: 'no-store',
@@ -22,6 +27,7 @@ export async function isSearchEnabled(): Promise<boolean> {
 }
 
 export async function getAvailableUpdates(): Promise<{ versionLabel: string; createdAt: string; releaseNotes: string }[]> {
+  if (!isSdkConfigured()) return [];
   try {
     const res = await fetch(`${SDK_URL}/api/v1/app/updates`, { cache: 'no-store' });
     if (!res.ok) return [];
@@ -41,6 +47,7 @@ export interface LicenseInfo {
 }
 
 export async function getLicenseInfo(): Promise<LicenseInfo | null> {
+  if (!isSdkConfigured()) return null;
   try {
     const res = await fetch(`${SDK_URL}/api/v1/license/info`, { cache: 'no-store' });
     if (!res.ok) {

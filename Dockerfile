@@ -14,6 +14,8 @@ FROM base AS dev
 
 # Production build target
 FROM base AS build
+ARG APP_VERSION=v0.0.0-dev
+ENV APP_VERSION=${APP_VERSION}
 RUN npm run build
 
 # Download the troubleshoot support-bundle binary. Architecture is taken from

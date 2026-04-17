@@ -32,12 +32,13 @@ services:
     build:
       context: .
       target: dev
-    command: npx next dev --hostname 0.0.0.0
+    command: sh -c "npm install && npx next dev --hostname 0.0.0.0"
     ports:
       - "3000:3000"
     environment:
       DATABASE_URL: postgresql://didnotreadit:password@db:5432/didnotreadit
       SESSION_SECRET: dev-secret-change-in-production-min-32-chars!!
+      APP_VERSION: v0.0.0-dev
       WATCHPACK_POLLING: "true"
     volumes:
       - .:/app

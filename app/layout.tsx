@@ -12,12 +12,15 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <body className="app-body">
         <AppBanners />
         <Header />
         <main className="container">
           {children}
         </main>
+        <footer className="app-footer">
+          <span>{process.env.APP_VERSION}</span>
+        </footer>
       </body>
     </html>
   );
