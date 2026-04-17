@@ -78,12 +78,18 @@ stringData:
               - pass:
                   when: ">= 1.34.0"
                   message: "Kubernetes version is supported."
-        # (5) Distribution — kind clusters are not supported.
+        # (5) Distribution — unsupported local/dev distributions.
         - distribution:
             checkName: Supported Kubernetes distribution
             outcomes:
               - fail:
                   when: "== kind"
                   message: "didnotreadit does not support kind clusters. kind is intended for local container testing and does not provide the persistent storage guarantees the embedded PostgreSQL needs. Use a production-grade distribution such as k3s, EKS, GKE, or AKS."
+              - fail:
+                  when: "== dockerDesktop"
+                  message: "didnotreadit does not support Docker Desktop Kubernetes. Docker Desktop is intended for local development and lacks reliable persistent storage and networking. Use a production-grade distribution such as k3s, EKS, GKE, or AKS."
+              - fail:
+                  when: "== microk8s"
+                  message: "didnotreadit does not support MicroK8s. MicroK8s uses non-standard paths and storage that can cause compatibility issues. Use a production-grade distribution such as k3s, EKS, GKE, or AKS."
               - pass:
                   message: "Cluster distribution is supported."
