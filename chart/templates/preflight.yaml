@@ -18,14 +18,15 @@ stringData:
             collectorName: external-postgres
             uri: {{ .Values.externalDatabase.url | quote }}
         {{- end }}
-        {{- if .Values.smtp.enabled }}
-        - tcpConnect:
-            collectorName: smtp-endpoint
-            address: {{ printf "%s:%s" .Values.smtp.host (.Values.smtp.port | toString) | quote }}
-            timeout: 5s
-        {{- end }}
         - clusterInfo: {}
         - clusterResources: {}
+      {{- if .Values.smtp.enabled }}
+      hostCollectors:
+        - tcpPortStatus:
+            collectorName: smtp-endpoint
+            port: {{ .Values.smtp.port | int }}
+            address: {{ .Values.smtp.host | quote }}
+      {{- end }}
       analyzers:
         # (1) External database connectivity — only when externalDatabase is in use.
         {{- if not .Values.postgresql.enabled }}
@@ -39,25 +40,6 @@ stringData:
               - pass:
                   when: "connected == true"
                   message: "Successfully connected to the external PostgreSQL."
-        {{- end }}
-        # (2) External SMTP endpoint connectivity — only when email is enabled.
-        {{- if .Values.smtp.enabled }}
-        - tcpConnect:
-            checkName: SMTP endpoint connectivity
-            collectorName: smtp-endpoint
-            outcomes:
-              - fail:
-                  when: "connection-refused"
-                  message: {{ printf "Connection refused by SMTP server at %s:%s. Verify the host and port are correct and that the SMTP service is running." .Values.smtp.host (.Values.smtp.port | toString) | quote }}
-              - fail:
-                  when: "connection-timeout"
-                  message: {{ printf "Timed out connecting to the SMTP server at %s:%s. Check that the cluster has network access to the SMTP server (firewall, egress rules, DNS)." .Values.smtp.host (.Values.smtp.port | toString) | quote }}
-              - fail:
-                  when: "error"
-                  message: {{ printf "Unable to reach SMTP server at %s:%s. Verify the host, port, and that the cluster can resolve and connect to it." .Values.smtp.host (.Values.smtp.port | toString) | quote }}
-              - pass:
-                  when: "connected"
-                  message: "SMTP server is reachable from the cluster."
         {{- end }}
         # (3) Cluster CPU capacity — must have at least 4 cores total.
         - nodeResources:
@@ -93,3 +75,23 @@ stringData:
                   message: "didnotreadit does not support MicroK8s. MicroK8s uses non-standard paths and storage that can cause compatibility issues. Use a production-grade distribution such as k3s, EKS, GKE, or AKS."
               - pass:
                   message: "Cluster distribution is supported."
+      {{- if .Values.smtp.enabled }}
+      hostAnalyzers:
+        # (2) External SMTP endpoint connectivity — only when email is enabled.
+        - tcpPortStatus:
+            checkName: SMTP endpoint connectivity
+            collectorName: smtp-endpoint
+            outcomes:
+              - fail:
+                  when: "connection-refused"
+                  message: {{ printf "Connection refused by SMTP server at %s:%s. Verify the host and port are correct and that the SMTP service is running." .Values.smtp.host (.Values.smtp.port | toString) | quote }}
+              - fail:
+                  when: "connection-timeout"
+                  message: {{ printf "Timed out connecting to the SMTP server at %s:%s. Check that the cluster has network access to the SMTP server (firewall, egress rules, DNS)." .Values.smtp.host (.Values.smtp.port | toString) | quote }}
+              - fail:
+                  when: "error"
+                  message: {{ printf "Unable to reach SMTP server at %s:%s. Verify the host, port, and that the cluster can resolve and connect to it." .Values.smtp.host (.Values.smtp.port | toString) | quote }}
+              - pass:
+                  when: "connected"
+                  message: "SMTP server is reachable from the cluster."
+      {{- end }}
