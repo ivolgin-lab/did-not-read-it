@@ -708,6 +708,14 @@ a:hover {
   font-size: 11px;
   color: #888;
 }
+.app-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.app-body .container {
+  flex: 1;
+}
 .app-footer {
   max-width: 960px;
   margin: 24px auto 12px;
@@ -716,6 +724,7 @@ a:hover {
   text-align: center;
   font-size: 11px;
   color: #999;
+  width: 100%;
 }
 .bundle-logs {
   margin-top: 8px;
