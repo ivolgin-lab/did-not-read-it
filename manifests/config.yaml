@@ -71,6 +71,10 @@ spec:
           default: "5432"
           required: true
           when: 'repl{{ ConfigOptionEquals "postgres_type" "external" }}'
+          validation:
+            regex:
+              pattern: ^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$
+              message: Must be a valid port number (1–65535).
           help_text: Port number of the external PostgreSQL server. Default is 5432.
         - name: external_postgres_user
           title: Username
@@ -113,6 +117,10 @@ spec:
           default: "587"
           required: true
           when: 'repl{{ ConfigOptionEquals "smtp_enabled" "1" }}'
+          validation:
+            regex:
+              pattern: ^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$
+              message: Must be a valid port number (1–65535).
           help_text: SMTP port. 587 for STARTTLS, 465 for implicit TLS, 25 for plain. Most providers use 587.
         - name: smtp_username
           title: SMTP Username
@@ -129,6 +137,10 @@ spec:
           type: text
           required: true
           when: 'repl{{ ConfigOptionEquals "smtp_enabled" "1" }}'
+          validation:
+            regex:
+              pattern: ^[^@\s]+@[^@\s]+\.[^@\s]+$
+              message: Must be a valid email address (e.g. noreply@example.com).
           help_text: Sender address used on outgoing emails (e.g. noreply@example.com). The address must be permitted by your SMTP provider.
         - name: app_base_url
           title: App Base URL (optional)
