@@ -18,6 +18,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="container">
           {children}
         </main>
+        <footer className="app-footer">
+          <span>{process.env.APP_VERSION}</span>
+        </footer>
       </body>
     </html>
   );

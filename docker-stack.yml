@@ -38,6 +38,7 @@ services:
     environment:
       DATABASE_URL: postgresql://didnotreadit:password@db:5432/didnotreadit
       SESSION_SECRET: dev-secret-change-in-production-min-32-chars!!
+      APP_VERSION: v0.0.0-dev
       WATCHPACK_POLLING: "true"
     volumes:
       - .:/app

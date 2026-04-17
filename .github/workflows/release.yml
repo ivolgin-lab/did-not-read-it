@@ -45,6 +45,8 @@ jobs:
           push: true
           tags: |
             quay.io/divolgin/didnotreadit-${{ matrix.target }}:${{ needs.version.outputs.version }}
+          build-args: |
+            APP_VERSION=v${{ needs.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
