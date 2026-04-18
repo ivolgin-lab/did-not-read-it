@@ -24,7 +24,7 @@ if ! npx drizzle-kit push; then
 fi
 
 echo "migrations: applying search trigger..."
-if ! PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$DB_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f db/search-trigger.sql; then
+if ! psql "$DATABASE_URL" -f db/search-trigger.sql; then
   echo "migrations: ERROR: failed to apply db/search-trigger.sql" >&2
   exit 1
 fi
